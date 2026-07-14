@@ -1,0 +1,10 @@
+spring:
+  application.name: tech-support-ticket-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ticketdb
+    username: ticketuser
+    password: ticketpass
+  jpa:
+    hibernate.ddl-auto: update
+    show-sql: true

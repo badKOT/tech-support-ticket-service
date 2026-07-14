@@ -1,0 +1,35 @@
+package self.project.web.ticket.service.controller;
+
+import org.springframework.web.bind.annotation.*;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import self.project.web.ticket.service.dto.*;
+import self.project.web.ticket.service.service.CommonService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+@RequiredArgsConstructor
+@Slf4j
+public class CommonController {
+
+    private final CommonService commonService;
+
+    @GetMapping("/projects")
+    public List<ProjectResponse> getProjects() {
+        log.info("[GET /projects] Got request!");
+        var result = commonService.getProjects();
+        log.info("[GET /projects] Sending response: {}", result);
+        return result;
+    }
+
+    @GetMapping("/users")
+    public List<UserResponse> getUsers() {
+        log.info("[GET /users] Got request!");
+        var result = commonService.getUsers();
+        log.info("[GET /users] Sending response: {}", result);
+        return result;
+    }
+}
