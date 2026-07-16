@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketBoard - Admin</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f5f7; color: #172b4d; min-height: 100vh; }
+.header { background: #0052CC; color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.header-left { display: flex; align-items: center; gap: 32px; }
+.logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.logo a { color: #fff; text-decoration: none; }
+.nav-link { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 14px; }
+.nav-link:hover { color: #fff; }
+.container { max-width: 800px; margin: 0 auto; padding: 48px 24px; }
+.section { margin-bottom: 48px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.section-header h2 { font-size: 20px; font-weight: 600; }
+.item-card { background: #fff; border-radius: 6px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.item-left { display: flex; align-items: center; gap: 12px; }
+.item-avatar { width: 36px; height: 36px; border-radius: 50%; background: #0052CC; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+.item-avatar.project { background: #36B37E; border-radius: 4px; font-size: 13px; }
+.item-detail { }
+.item-name { font-size: 15px; font-weight: 500; }
+.item-meta { font-size: 12px; color: #6b778c; }
+.item-actions { display: flex; gap: 8px; }
+.btn { padding: 8px 16px; border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: background 0.15s; }
+.btn-primary { background: #0052CC; color: #fff; }
+.btn-primary:hover { background: #0043a6; }
+.btn-secondary { background: #ebecf0; color: #172b4d; }
+.btn-secondary:hover { background: #dfe1e6; }
+.btn-danger { background: #de350b; color: #fff; }
+.btn-danger:hover { background: #bf2e0a; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.edit-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
+.edit-form input { padding: 6px 10px; border: 1px solid #dfe1e6; border-radius: 4px; font-size: 14px; outline: none; font-family: inherit; width: 160px; }
+.edit-form input:focus { border-color: #0052CC; box-shadow: 0 0 0 2px rgba(0,82,204,0.2); }
+.edit-form input.wide { width: 240px; }
+.empty-state { text-align: center; padding: 60px 20px; color: #6b778c; }
+.empty-state p { font-size: 16px; }
+.error { color: #de350b; font-size: 13px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <span class="logo"><a href="/">TicketBoard</a></span>
+    <a href="/" class="nav-link">Projects</a>
+    <a href="admin.html" class="nav-link" style="color:#fff;">Admin</a>
+  </div>
+</div>
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <h2>Users</h2>
+      <button class="btn btn-primary btn-sm" onclick="showAddUser()">+ Add User</button>
+    </div>
+    <div id="userList"></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>Projects</h2>
+      <button class="btn btn-primary btn-sm" onclick="showAddProject()">+ Add Project</button>
+    </div>
+    <div id="projectList"></div>
+  </div>
+</div>
+
+<script>
+var API = '/api/admin';
+
+function h(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function initials(name) {
+  return (name || '??').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+}
+
+function projectInitials(name) {
+  return (name || '??').replace(/[^A-Z]/g, '').slice(0, 3) || name.slice(0, 3).toUpperCase();
+}
+
+async function fetchJSON(url, opts) {
+  var res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (!res.ok) throw new Error(await res.text());
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+var users = [];
+var projects = [];
+
+async function init() {
+  [users, projects] = await Promise.all([
+    fetchJSON(API + '/users'),
+    fetchJSON(API + '/projects')
+  ]);
+  renderUsers();
+  renderProjects();
+}
+
+function renderUsers() {
+  var el = document.getElementById('userList');
+  if (users.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>No users.</p></div>';
+    return;
+  }
+  el.innerHTML = users.map(function(u) {
+    return '<div class="item-card">' +
+      '<div class="item-left">' +
+      '<div class="item-avatar">' + initials(u.displayName) + '</div>' +
+      '<div class="item-detail">' +
+      '<div class="item-name">' + h(u.displayName) + ' <span style="font-size:12px;color:#6b778c;">@' + h(u.username) + '</span></div>' +
+      '<div class="item-meta">' + h(u.email || '') + '</div>' +
+      '</div></div>' +
+      '<div class="item-actions">' +
+      '<button class="btn btn-secondary btn-sm" onclick="editUser(' + u.id + ')">Edit</button>' +
+      '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + u.id + ', \'' + h(u.displayName) + '\')">Delete</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function renderProjects() {
+  var el = document.getElementById('projectList');
+  if (projects.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>No projects.</p></div>';
+    return;
+  }
+  el.innerHTML = projects.map(function(p) {
+    return '<div class="item-card">' +
+      '<div class="item-left">' +
+      '<div class="item-avatar project">' + projectInitials(p.key || p.name) + '</div>' +
+      '<div class="item-detail">' +
+      '<div class="item-name">' + h(p.name) + ' <span style="font-size:12px;color:#6b778c;">' + h(p.key) + '</span></div>' +
+      '<div class="item-meta">' + h(p.description || '') + '</div>' +
+      '</div></div>' +
+      '<div class="item-actions">' +
+      '<button class="btn btn-secondary btn-sm" onclick="editProject(' + p.id + ')">Edit</button>' +
+      '<button class="btn btn-danger btn-sm" onclick="deleteProject(' + p.id + ', \'' + h(p.name) + '\')">Delete</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function showAddUser() {
+  var list = document.getElementById('userList');
+  var form = '<div class="item-card"><div class="edit-form">' +
+    '<input id="nu-username" placeholder="Username">' +
+    '<input id="nu-display" placeholder="Display name" class="wide">' +
+    '<input id="nu-email" placeholder="Email" class="wide">' +
+    '<button class="btn btn-primary btn-sm" onclick="createUser()">Save</button>' +
+    '<button class="btn btn-secondary btn-sm" onclick="renderUsers()">Cancel</button>' +
+    '</div></div>';
+  list.innerHTML = form + list.innerHTML;
+}
+
+async function createUser() {
+  var username = document.getElementById('nu-username').value.trim();
+  var displayName = document.getElementById('nu-display').value.trim();
+  var email = document.getElementById('nu-email').value.trim();
+  if (!username || !displayName) return alert('Username and display name are required.');
+  await fetchJSON(API + '/users', { method: 'POST', body: JSON.stringify({ username: username, displayName: displayName, email: email }) });
+  users = await fetchJSON(API + '/users');
+  renderUsers();
+}
+
+function editUser(id) {
+  var u = users.find(function(x) { return x.id === id; });
+  var list = document.getElementById('userList');
+  list.innerHTML = users.map(function(x) {
+    if (x.id !== id) return cardForUser(x);
+    return '<div class="item-card"><div class="edit-form">' +
+      '<input id="eu-username" value="' + h(x.username) + '" placeholder="Username">' +
+      '<input id="eu-display" value="' + h(x.displayName) + '" placeholder="Display name" class="wide">' +
+      '<input id="eu-email" value="' + h(x.email || '') + '" placeholder="Email" class="wide">' +
+      '<button class="btn btn-primary btn-sm" onclick="saveUser(' + id + ')">Save</button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="renderUsers()">Cancel</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+async function saveUser(id) {
+  var username = document.getElementById('eu-username').value.trim();
+  var displayName = document.getElementById('eu-display').value.trim();
+  var email = document.getElementById('eu-email').value.trim();
+  if (!username || !displayName) return alert('Username and display name are required.');
+  await fetchJSON(API + '/users/' + id, { method: 'PUT', body: JSON.stringify({ username: username, displayName: displayName, email: email }) });
+  users = await fetchJSON(API + '/users');
+  renderUsers();
+}
+
+async function deleteUser(id, name) {
+  if (!confirm('Delete user "' + name + '"?')) return;
+  await fetchJSON(API + '/users/' + id, { method: 'DELETE' });
+  users = await fetchJSON(API + '/users');
+  renderUsers();
+}
+
+function showAddProject() {
+  var list = document.getElementById('projectList');
+  var form = '<div class="item-card"><div class="edit-form">' +
+    '<input id="np-name" placeholder="Name">' +
+    '<input id="np-key" placeholder="Key" style="width:80px;">' +
+    '<input id="np-desc" placeholder="Description" class="wide">' +
+    '<button class="btn btn-primary btn-sm" onclick="createProject()">Save</button>' +
+    '<button class="btn btn-secondary btn-sm" onclick="renderProjects()">Cancel</button>' +
+    '</div></div>';
+  list.innerHTML = form + list.innerHTML;
+}
+
+async function createProject() {
+  var name = document.getElementById('np-name').value.trim();
+  var key = document.getElementById('np-key').value.trim();
+  var desc = document.getElementById('np-desc').value.trim();
+  if (!name || !key) return alert('Name and key are required.');
+  await fetchJSON(API + '/projects', { method: 'POST', body: JSON.stringify({ name: name, key: key, description: desc }) });
+  projects = await fetchJSON(API + '/projects');
+  renderProjects();
+}
+
+function editProject(id) {
+  var list = document.getElementById('projectList');
+  list.innerHTML = projects.map(function(x) {
+    if (x.id !== id) return cardForProject(x);
+    return '<div class="item-card"><div class="edit-form">' +
+      '<input id="ep-name" value="' + h(x.name) + '" placeholder="Name">' +
+      '<input id="ep-key" value="' + h(x.key) + '" placeholder="Key" style="width:80px;">' +
+      '<input id="ep-desc" value="' + h(x.description || '') + '" placeholder="Description" class="wide">' +
+      '<button class="btn btn-primary btn-sm" onclick="saveProject(' + id + ')">Save</button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="renderProjects()">Cancel</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+async function saveProject(id) {
+  var name = document.getElementById('ep-name').value.trim();
+  var key = document.getElementById('ep-key').value.trim();
+  var desc = document.getElementById('ep-desc').value.trim();
+  if (!name || !key) return alert('Name and key are required.');
+  await fetchJSON(API + '/projects/' + id, { method: 'PUT', body: JSON.stringify({ name: name, key: key, description: desc }) });
+  projects = await fetchJSON(API + '/projects');
+  renderProjects();
+}
+
+async function deleteProject(id, name) {
+  if (!confirm('Delete project "' + name + '" and all its tickets?')) return;
+  await fetchJSON(API + '/projects/' + id, { method: 'DELETE' });
+  projects = await fetchJSON(API + '/projects');
+  renderProjects();
+}
+
+function cardForUser(u) {
+  return '<div class="item-card">' +
+    '<div class="item-left">' +
+    '<div class="item-avatar">' + initials(u.displayName) + '</div>' +
+    '<div class="item-detail">' +
+    '<div class="item-name">' + h(u.displayName) + ' <span style="font-size:12px;color:#6b778c;">@' + h(u.username) + '</span></div>' +
+    '<div class="item-meta">' + h(u.email || '') + '</div>' +
+    '</div></div>' +
+    '<div class="item-actions">' +
+    '<button class="btn btn-secondary btn-sm" onclick="editUser(' + u.id + ')">Edit</button>' +
+    '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + u.id + ', \'' + h(u.displayName) + '\')">Delete</button>' +
+    '</div></div>';
+}
+
+function cardForProject(p) {
+  return '<div class="item-card">' +
+    '<div class="item-left">' +
+    '<div class="item-avatar project">' + projectInitials(p.key || p.name) + '</div>' +
+    '<div class="item-detail">' +
+    '<div class="item-name">' + h(p.name) + ' <span style="font-size:12px;color:#6b778c;">' + h(p.key) + '</span></div>' +
+    '<div class="item-meta">' + h(p.description || '') + '</div>' +
+    '</div></div>' +
+    '<div class="item-actions">' +
+    '<button class="btn btn-secondary btn-sm" onclick="editProject(' + p.id + ')">Edit</button>' +
+    '<button class="btn btn-danger btn-sm" onclick="deleteProject(' + p.id + ', \'' + h(p.name) + '\')">Delete</button>' +
+    '</div></div>';
+}
+
+init();
+</script>
+</body>
+</html>

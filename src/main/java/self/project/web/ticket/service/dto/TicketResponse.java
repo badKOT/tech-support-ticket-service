@@ -18,6 +18,7 @@ public record TicketResponse(
         Long creatorId,
         String creatorName,
         Instant createdAt,
+        Instant closedAt,
         List<CommentResponse> comments) {
 
     public static TicketResponse from(Ticket ticket) {
@@ -36,6 +37,7 @@ public record TicketResponse(
                 ticket.getCreator().getId(),
                 ticket.getCreator().getDisplayName(),
                 ticket.getCreatedAt(),
+                ticket.getClosedAt(),
                 commentResponses);
     }
 }

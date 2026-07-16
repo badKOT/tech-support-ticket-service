@@ -8,7 +8,9 @@ import self.project.web.ticket.service.dto.*;
 import self.project.web.ticket.service.entity.*;
 import self.project.web.ticket.service.repository.*;
 
-import java.util.List;
+import java.time.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -55,12 +57,23 @@ public class TicketService {
             ticket.setDescription(request.description());
         }
         if (request.status() != null) {
-            ticket.setStatus(TicketStatus.valueOf(request.status()));
+            TicketStatus newStatus = TicketStatus.valueOf(request.status());
+            if (newStatus == TicketStatus.CLOSED && ticket.getStatus() != TicketStatus.CLOSED) {
+                ticket.setClosedAt(Instant.now());
+            }
+            ticket.setStatus(newStatus);
         }
         if (request.assigneeId() != null) {
             User assignee = userRepo.findById(request.assigneeId())
                     .orElseThrow(() -> new RuntimeException("User not found: " + request.assigneeId()));
             ticket.setAssignee(assignee);
+        } else {
+            ticket.setAssignee(null);
+        }
+        if (request.projectId() != null) {
+            Project project = projectRepo.findById(request.projectId())
+                    .orElseThrow(() -> new RuntimeException("Project not found: " + request.projectId()));
+            ticket.setProject(project);
         }
 
         ticket = ticketRepo.save(ticket);
@@ -82,5 +95,41 @@ public class TicketService {
         return commentRepo.findByTicketIdOrderByCreatedAtAsc(ticketId).stream()
                 .map(CommentResponse::from)
                 .toList();
+    }
+
+    public ProjectAnalytics getProjectAnalytics(Long projectId) {
+        List<Ticket> tickets = ticketRepo.findByProjectIdOrderByCreatedAtDesc(projectId);
+        ZoneId zone = ZoneId.systemDefault();
+
+        Map<String, Long> statusCounts = tickets.stream()
+                .collect(Collectors.groupingBy(t -> t.getStatus().name(), Collectors.counting()));
+
+        LocalDate today = LocalDate.now();
+        List<DailyCount> dailyCounts = new ArrayList<>();
+        for (int i = 13; i >= 0; i--) {
+            LocalDate date = today.minusDays(i);
+            String dateStr = date.toString();
+            long created = tickets.stream()
+                    .filter(t -> t.getCreatedAt().atZone(zone).toLocalDate().equals(date))
+                    .count();
+            long resolved = tickets.stream()
+                    .filter(t -> t.getClosedAt() != null && t.getClosedAt().atZone(zone).toLocalDate().equals(date))
+                    .count();
+            dailyCounts.add(new DailyCount(dateStr, created, resolved));
+        }
+
+        List<AssigneeResolutionTime> resolutionTimes = tickets.stream()
+                .filter(t -> t.getClosedAt() != null && t.getAssignee() != null)
+                .collect(Collectors.groupingBy(
+                        t -> t.getAssignee().getDisplayName(),
+                        Collectors.averagingDouble(t ->
+                                Duration.between(t.getCreatedAt(), t.getClosedAt()).toHours()
+                        )
+                ))
+                .entrySet().stream()
+                .map(e -> new AssigneeResolutionTime(e.getKey(), Math.round(e.getValue() * 10.0) / 10.0))
+                .toList();
+
+        return new ProjectAnalytics(statusCounts, dailyCounts, resolutionTimes);
     }
 }

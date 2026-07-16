@@ -8,3 +8,22 @@ spring:
   jpa:
     hibernate.ddl-auto: update
     show-sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,shutdown
+  endpoint:
+    health:
+      show-details: when-authorized
+    shutdown:
+      access: unrestricted
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: tech-support-ticket-service
+    description: Internal IT ticketing system

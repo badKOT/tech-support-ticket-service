@@ -21,7 +21,7 @@ public class CommonController {
     public List<ProjectResponse> getProjects() {
         log.info("[GET /projects] Got request!");
         var result = commonService.getProjects();
-        log.info("[GET /projects] Sending response: {}", result);
+        log.info("[GET /projects] Sending response");
         return result;
     }
 
@@ -29,7 +29,7 @@ public class CommonController {
     public List<UserResponse> getUsers() {
         log.info("[GET /users] Got request!");
         var result = commonService.getUsers();
-        log.info("[GET /users] Sending response: {}", result);
+        log.info("[GET /users] Sending response");
         return result;
     }
 }

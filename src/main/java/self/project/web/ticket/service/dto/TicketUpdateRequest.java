@@ -4,5 +4,5 @@ public record TicketUpdateRequest(
         String title,
         String description,
         String status,
-        Long assigneeId) {
-}
+        Long assigneeId,
+        Long projectId) {}

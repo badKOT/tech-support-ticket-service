@@ -3,321 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ticket Service</title>
+<title>TicketBoard</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f5f7; color: #172b4d; min-height: 100vh; }
-.header { background: #0052CC; color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
-.header-left { display: flex; align-items: center; gap: 32px; }
+.header { background: #0052CC; color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
 .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-.project-tabs { display: flex; gap: 4px; }
-.project-select { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 14px; cursor: pointer; outline: none; }
-.project-select option { color: #172b4d; background: #fff; }
-.user-select { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 14px; cursor: pointer; outline: none; }
-.user-select option { color: #172b4d; background: #fff; }
-.container { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
-.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.toolbar h2 { font-size: 24px; font-weight: 600; }
-.btn { padding: 8px 16px; border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: background 0.15s; }
-.btn-primary { background: #0052CC; color: #fff; }
-.btn-primary:hover { background: #0043a6; }
-.btn-secondary { background: #ebecf0; color: #172b4d; }
-.btn-secondary:hover { background: #dfe1e6; }
-.btn-sm { padding: 4px 10px; font-size: 12px; }
-.btn-danger { background: #de350b; color: #fff; }
-.btn-danger:hover { background: #c72e0a; }
-.ticket-list { display: flex; flex-direction: column; gap: 8px; }
-.ticket-card { background: #fff; border-radius: 6px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: box-shadow 0.15s; }
-.ticket-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
-.ticket-left { display: flex; align-items: center; gap: 16px; }
-.ticket-title { font-size: 15px; font-weight: 500; }
-.ticket-meta { font-size: 12px; color: #6b778c; margin-top: 2px; }
-.status-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
-.status-OPEN { background: #deebff; color: #0052CC; }
-.status-IN_PROGRESS { background: #fff7d6; color: #946f00; }
-.status-IN_REVIEW { background: #e3fcef; color: #006644; }
-.status-RESOLVED { background: #e3fcef; color: #006644; }
-.status-CLOSED { background: #ebecf0; color: #5e6c84; }
-.assignee { font-size: 12px; color: #6b778c; display: flex; align-items: center; gap: 6px; }
-.assignee-avatar { width: 24px; height: 24px; border-radius: 50%; background: #0052CC; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
-.modal-overlay { position: fixed; inset: 0; background: rgba(9,30,66,0.54); z-index: 100; display: flex; justify-content: center; padding-top: 60px; }
-.modal { background: #fff; border-radius: 8px; width: 720px; max-height: calc(100vh - 120px); overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
-.modal-header { padding: 20px 24px; border-bottom: 1px solid #ebecf0; display: flex; justify-content: space-between; align-items: flex-start; }
-.modal-header h3 { font-size: 20px; font-weight: 600; color: #172b4d; }
-.modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #6b778c; padding: 4px; }
-.modal-close:hover { color: #172b4d; }
-.modal-body { padding: 24px; }
-.field { margin-bottom: 20px; }
-.field label { display: block; font-size: 12px; font-weight: 600; color: #5e6c84; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.3px; }
-.field input, .field textarea, .field select { width: 100%; padding: 8px 12px; border: 1px solid #dfe1e6; border-radius: 4px; font-size: 14px; color: #172b4d; outline: none; font-family: inherit; }
-.field input:focus, .field textarea:focus, .field select:focus { border-color: #0052CC; box-shadow: 0 0 0 2px rgba(0,82,204,0.2); }
-.field textarea { min-height: 120px; resize: vertical; }
-.field-row { display: flex; gap: 16px; }
-.field-row .field { flex: 1; }
-.comment-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid #ebecf0; }
-.comment-section h4 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
-.comment { margin-bottom: 16px; }
-.comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.comment-author { font-size: 13px; font-weight: 600; }
-.comment-time { font-size: 11px; color: #6b778c; }
-.comment-body { font-size: 14px; color: #172b4d; padding-left: 2px; }
-.comment-form { display: flex; gap: 12px; margin-top: 16px; }
-.comment-form input { flex: 1; padding: 8px 12px; border: 1px solid #dfe1e6; border-radius: 4px; font-size: 14px; outline: none; }
-.comment-form input:focus { border-color: #0052CC; box-shadow: 0 0 0 2px rgba(0,82,204,0.2); }
+.container { max-width: 960px; margin: 0 auto; padding: 48px 24px; }
+.section { margin-bottom: 48px; }
+.section h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.card { background: #fff; border-radius: 6px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-decoration: none; color: #172b4d; transition: box-shadow 0.15s; display: block; }
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.card-title { font-size: 16px; font-weight: 600; }
+.card-subtitle { font-size: 13px; color: #6b778c; margin-top: 4px; }
+.user-card { background: #fff; border-radius: 6px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; }
+.user-avatar { width: 36px; height: 36px; border-radius: 50%; background: #0052CC; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+.user-name { font-size: 15px; font-weight: 500; }
+.user-email { font-size: 12px; color: #6b778c; }
 .empty-state { text-align: center; padding: 60px 20px; color: #6b778c; }
-.empty-state p { font-size: 16px; margin-bottom: 16px; }
-.create-form { background: #fff; border-radius: 6px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 24px; }
-.create-form h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-.form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-.actions { display: flex; gap: 8px; align-items: center; }
+.empty-state p { font-size: 16px; }
 </style>
 </head>
 <body>
 <div class="header">
-  <div class="header-left">
+  <div style="display:flex;align-items:center;gap:32px;">
     <span class="logo">TicketBoard</span>
-    <select class="project-select" id="projectSelect" onchange="selectProject(this.value)"></select>
+    <a href="admin.html" style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:14px;">Admin</a>
   </div>
-  <select class="user-select" id="currentUser"></select>
 </div>
-<div class="container" id="app"></div>
+<div class="container">
+  <div class="section">
+    <h2>Projects</h2>
+    <div id="projectList"></div>
+  </div>
+</div>
 
 <script>
-const API = '/api';
-
-let projects = [];
-let users = [];
-let currentProjectId = null;
-
-let currentUser = null;
-let tickets = [];
-
-function statusLabel(s) {
-  return s.replace('_', ' ');
-}
-
-function initials(name) {
-  return (name || '??').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-}
-
-function formatTime(ts) {
-  return new Date(ts).toLocaleString();
-}
-
-async function fetchJSON(url, opts) {
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-async function init() {
-  [projects, users] = await Promise.all([
-    fetchJSON(API + '/projects'),
-    fetchJSON(API + '/users')
-  ]);
-
-  const savedUser = localStorage.getItem('currentUserId');
-  currentUser = users.find(u => u.id == savedUser) || users[0];
-  if (!currentUser) { document.getElementById('app').innerHTML = '<p>No users found.</p>'; return; }
-  document.getElementById('currentUser').innerHTML = users.map(u =>
-    '<option value="' + u.id + '" ' + (u.id === currentUser.id ? 'selected' : '') + '>' + u.displayName + '</option>'
-  ).join('');
-
-  document.getElementById('currentUser').addEventListener('change', function() {
-    currentUser = users.find(u => u.id == this.value);
-    localStorage.setItem('currentUserId', currentUser.id);
-    render();
-  });
-
-  renderProjectSelect();
-  if (projects.length > 0) {
-    selectProject(projects[0].id);
-  } else {
-    render();
-  }
-}
-
-function renderProjectSelect() {
-  var sel = document.getElementById('projectSelect');
-  sel.innerHTML = projects.map(p =>
-    '<option value="' + p.id + '"' + (currentProjectId === p.id ? ' selected' : '') + '>' + h(p.name) + '</option>'
-  ).join('');
-}
+var API = '/api';
 
 function h(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-async function selectProject(id) {
-  currentProjectId = parseInt(id);
-  renderProjectSelect();
-  tickets = await fetchJSON(API + '/projects/' + id + '/tickets');
-  render();
+function initials(name) {
+  return (name || '??').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
 }
 
-function render() {
-  if (!currentProjectId) {
-    document.getElementById('app').innerHTML = '<div class="empty-state"><p>Empty here :(</p></div>';
-    return;
+async function init() {
+  try {
+    var projects = await fetch(API + '/projects', { headers: { 'Content-Type': 'application/json' } }).then(function(r) { return r.json(); });
+
+    var projectHtml = '';
+    if (projects.length === 0) {
+      projectHtml = '<div class="empty-state"><p>No projects found.</p></div>';
+    } else {
+      projectHtml = '<div class="card-grid">';
+      projects.forEach(function(p) {
+        projectHtml += '<a class="card" href="project.html?id=' + p.id + '">';
+        projectHtml += '<div class="card-title">' + h(p.name) + '</div>';
+        projectHtml += '<div class="card-subtitle">' + h(p.description || '') + '</div>';
+        projectHtml += '</a>';
+      });
+      projectHtml += '</div>';
+    }
+    document.getElementById('projectList').innerHTML = projectHtml;
+  } catch (e) {
+    document.body.innerHTML = '<div class="empty-state"><p>Failed to load data. Is the API running?</p></div>';
   }
-  var currentProject = projects.find(p => p.id === currentProjectId);
-  document.getElementById('app').innerHTML = buildApp(currentProject);
-  bindEvents();
-}
-
-function buildApp(project) {
-  var hh = '';
-  hh += '<div class="toolbar"><h2>' + h(project.name) + '</h2>';
-  hh += '<button class="btn btn-primary" onclick="showCreateForm()">+ Create Ticket</button></div>';
-
-  if (tickets.length === 0) {
-    hh += '<div class="empty-state"><p>No tickets in this project yet.</p></div>';
-  } else {
-    hh += '<div class="ticket-list">';
-    tickets.forEach(function(t) {
-      hh += '<div class="ticket-card" onclick="showTicket(' + t.id + ')">';
-      hh += '<div class="ticket-left">';
-      hh += '<span class="ticket-title">' + h(t.title) + '</span>';
-      hh += '<span class="ticket-meta">#' + t.id + ' by ' + h(t.creatorName) + '</span>';
-      hh += '</div>';
-      hh += '<div class="actions">';
-      hh += '<div class="assignee">' + (t.assigneeName
-        ? '<span class="assignee-avatar">' + initials(t.assigneeName) + '</span>' + h(t.assigneeName)
-        : '<span style="color:#6b778c;font-size:12px;">Unassigned</span>') + '</div>';
-      hh += '<span class="status-badge status-' + t.status + '">' + statusLabel(t.status) + '</span>';
-      hh += '</div>';
-      hh += '</div>';
-    });
-    hh += '</div>';
-  }
-  return hh;
-}
-
-function bindEvents() {
-  var esc = function(e) { if (e.key === 'Escape') render(); };
-  document.addEventListener('keydown', esc);
-}
-
-function showCreateForm() {
-  document.getElementById('app').innerHTML = buildCreateForm();
-}
-
-function buildCreateForm() {
-  return '<div class="create-form">' +
-    '<h3>Create Ticket</h3>' +
-    '<div class="field"><label>Title</label><input id="ct-title" placeholder="Ticket title"></div>' +
-    '<div class="field"><label>Description</label><textarea id="ct-desc" placeholder="Describe the issue..."></textarea></div>' +
-    '<div class="field"><label>Assign To (optional)</label><select id="ct-assign">' +
-      '<option value="">Unassigned</option>' +
-      users.map(function(u) { return '<option value="' + u.id + '">' + h(u.displayName) + '</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="form-actions">' +
-      '<button class="btn btn-secondary" onclick="render()">Cancel</button>' +
-      '<button class="btn btn-primary" onclick="submitCreate()">Create</button>' +
-    '</div></div>';
-}
-
-async function submitCreate() {
-  var title = document.getElementById('ct-title').value.trim();
-  var desc = document.getElementById('ct-desc').value.trim();
-  var assignee = document.getElementById('ct-assign').value;
-  if (!title) return alert('Title is required.');
-
-  var ticket = await fetchJSON(API + '/projects/' + currentProjectId + '/tickets', {
-    method: 'POST',
-    body: JSON.stringify({ title: title, description: desc, creatorId: currentUser.id })
-  });
-
-  if (assignee) {
-    ticket = await fetchJSON(API + '/tickets/' + ticket.id, {
-      method: 'PUT',
-      body: JSON.stringify({ assigneeId: parseInt(assignee) })
-    });
-  }
-
-  tickets = await fetchJSON(API + '/projects/' + currentProjectId + '/tickets');
-  render();
-}
-
-async function showTicket(id) {
-  var ticket = await fetchJSON(API + '/tickets/' + id);
-  var comments = await fetchJSON(API + '/tickets/' + id + '/comments');
-  document.getElementById('app').innerHTML = buildTicketDetail(ticket, comments);
-}
-
-function buildTicketDetail(ticket, comments) {
-  var isOwner = ticket.creatorId === currentUser.id;
-  var hh = '<div class="modal-overlay" onclick="if(event.target===this)render()"><div class="modal">';
-  hh += '<div class="modal-header">';
-  hh += '<h3>' + h(ticket.title) + ' <span style="font-size:14px;color:#6b778c;font-weight:400;">#' + ticket.id + '</span></h3>';
-  hh += '<button class="modal-close" onclick="render()">&times;</button>';
-  hh += '</div>';
-  hh += '<div class="modal-body">';
-
-  hh += '<div class="field-row">';
-  hh += '<div class="field"><label>Status</label><select id="ed-status">';
-  ['OPEN','IN_PROGRESS','IN_REVIEW','NEED_INFO','RESOLVED','CLOSED','REOPENED'].forEach(function(s) {
-    hh += '<option value="' + s + '" ' + (ticket.status === s ? 'selected' : '') + '>' + statusLabel(s) + '</option>';
-  });
-  hh += '</select></div>';
-  hh += '<div class="field"><label>Assignee</label><select id="ed-assignee">';
-  hh += '<option value="" ' + (!ticket.assigneeId ? 'selected' : '') + '>Unassigned</option>';
-  users.forEach(function(u) {
-    hh += '<option value="' + u.id + '" ' + (ticket.assigneeId === u.id ? 'selected' : '') + '>' + h(u.displayName) + '</option>';
-  });
-  hh += '</select></div>';
-  hh += '</div>';
-
-  hh += '<div class="field"><label>Title</label><input id="ed-title" value="' + h(ticket.title) + '"></div>';
-  hh += '<div class="field"><label>Description</label><textarea id="ed-desc">' + h(ticket.description || '') + '</textarea></div>';
-
-  hh += '<div class="form-actions">';
-  hh += '<button class="btn btn-primary btn-sm" onclick="saveTicket(' + ticket.id + ')">Save Changes</button>';
-  hh += '</div>';
-
-  hh += buildCommentSection(ticket, comments);
-
-  hh += '</div></div></div>';
-  return hh;
-}
-
-function buildCommentSection(ticket, comments) {
-  var sec = '<div class="comment-section"><h4>Comments (' + comments.length + ')</h4>';
-  comments.forEach(function(c) {
-    sec += '<div class="comment">';
-    sec += '<div class="comment-header">';
-    sec += '<span class="comment-author">' + h(c.authorName) + '</span>';
-    sec += '<span class="comment-time">' + formatTime(c.createdAt) + '</span>';
-    sec += '</div>';
-    sec += '<div class="comment-body">' + h(c.content) + '</div>';
-    sec += '</div>';
-  });
-  sec += '<div class="comment-form">';
-  sec += '<input id="comment-input" placeholder="Add a comment...">';
-  sec += '<button class="btn btn-primary btn-sm" onclick="submitComment(' + ticket.id + ')">Send</button>';
-  sec += '</div></div>';
-  return sec;
-}
-
-async function saveTicket(id) {
-  var body = {
-    title: document.getElementById('ed-title').value.trim(),
-    description: document.getElementById('ed-desc').value.trim(),
-    status: document.getElementById('ed-status').value,
-    assigneeId: document.getElementById('ed-assignee').value ? parseInt(document.getElementById('ed-assignee').value) : null
-  };
-  await fetchJSON(API + '/tickets/' + id, { method: 'PUT', body: JSON.stringify(body) });
-  tickets = await fetchJSON(API + '/projects/' + currentProjectId + '/tickets');
-  showTicket(id);
-}
-
-async function submitComment(ticketId) {
-  var input = document.getElementById('comment-input');
-  var content = input.value.trim();
-  if (!content) return;
-  await fetchJSON(API + '/tickets/' + ticketId + '/comments', {
-    method: 'POST',
-    body: JSON.stringify({ content: content, authorId: currentUser.id })
-  });
-  showTicket(ticketId);
 }
 
 init();

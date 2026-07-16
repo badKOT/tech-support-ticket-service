@@ -21,7 +21,7 @@ public class TicketController {
     public List<TicketResponse> getTickets(@PathVariable Long projectId) {
         log.info("[GET /projects/tickets] Got request! ProjectId = {}", projectId);
         var result = ticketService.getTicketsByProject(projectId);
-        log.info("[GET /projects/tickets] Sending response: {}", result);
+        log.info("[GET /projects/tickets] Sending response");
         return result;
     }
 
@@ -53,7 +53,7 @@ public class TicketController {
     public List<CommentResponse> getComments(@PathVariable Long ticketId) {
         log.info("[GET /tickets/comments] Got request! TicketId = {}", ticketId);
         var result = ticketService.getComments(ticketId);
-        log.info("[GET /tickets/comments] Sending response: {}", result);
+        log.info("[GET /tickets/comments] Sending response");
         return result;
     }
 
@@ -62,6 +62,14 @@ public class TicketController {
         log.info("[POST /tickets/comments] Got request! TicketId = {}, Body = {}", ticketId, request);
         var result = ticketService.addComment(ticketId, request);
         log.info("[POST /tickets/comments] Sending response: {}", result);
+        return result;
+    }
+
+    @GetMapping("/projects/{projectId}/analytics")
+    public ProjectAnalytics getProjectAnalytics(@PathVariable Long projectId) {
+        log.info("[GET /projects/{}/analytics] Got request!", projectId);
+        var result = ticketService.getProjectAnalytics(projectId);
+        log.info("[GET /projects/{}/analytics] Sending response", projectId);
         return result;
     }
 }

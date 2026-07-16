@@ -51,6 +51,9 @@ public class Ticket {
     @CreationTimestamp
     private Instant createdAt;
 
+    @Column
+    private Instant closedAt;
+
     public Ticket(String title, String description, Project project, User creator) {
         this.title = title;
         this.description = description;
