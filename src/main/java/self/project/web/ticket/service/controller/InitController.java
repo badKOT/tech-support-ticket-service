@@ -30,9 +30,13 @@ public class InitController {
         }
 
         User alice = userRepo.save(new User("alice", "Alice Johnson", "alice@example.com"));
+        alice.setPassword("alice");
         User bob   = userRepo.save(new User("bob", "Bob Smith", "bob@example.com"));
+        bob.setPassword("bob");
         User charlie = userRepo.save(new User("charlie", "Charlie Brown", "charlie@example.com"));
+        charlie.setPassword("charlie");
         User diana = userRepo.save(new User("diana", "Diana Prince", "diana@example.com"));
+        diana.setPassword("diana");
 
         Project it  = projectRepo.save(new Project("IT Support", "IT", "Internal IT support and infrastructure issues"));
         Project eng = projectRepo.save(new Project("Engineering", "ENG", "Software engineering tasks and bug tracking"));

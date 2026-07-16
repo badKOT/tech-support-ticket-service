@@ -30,4 +30,10 @@ public class CommonService {
                 .map(UserResponse::from)
                 .toList();
     }
+
+    public UserResponse getUserByUsername(String username) {
+        return userRepo.findByUsername(username)
+                .map(UserResponse::from)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    }
 }

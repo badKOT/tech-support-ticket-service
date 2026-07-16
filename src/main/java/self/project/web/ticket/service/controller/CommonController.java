@@ -1,5 +1,7 @@
 package self.project.web.ticket.service.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,14 @@ public class CommonController {
         log.info("[GET /users] Got request!");
         var result = commonService.getUsers();
         log.info("[GET /users] Sending response");
+        return result;
+    }
+
+    @GetMapping("/me")
+    public UserResponse getCurrentUser(@AuthenticationPrincipal UserDetails principal) {
+        log.info("[GET /me] Got request! User = {}", principal.getUsername());
+        var result = commonService.getUserByUsername(principal.getUsername());
+        log.info("[GET /me] Sending response: {}", result);
         return result;
     }
 }

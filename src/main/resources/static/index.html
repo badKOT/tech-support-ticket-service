@@ -7,7 +7,7 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f5f7; color: #172b4d; min-height: 100vh; }
-.header { background: #0052CC; color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.header { background: #0052CC; color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
 .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
 .container { max-width: 960px; margin: 0 auto; padding: 48px 24px; }
 .section { margin-bottom: 48px; }
@@ -17,6 +17,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
 .card-title { font-size: 16px; font-weight: 600; }
 .card-subtitle { font-size: 13px; color: #6b778c; margin-top: 4px; }
+.user-info { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 14px; }
+.user-info-avatar { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.25); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.logout-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+.logout-btn:hover { background: rgba(255,255,255,0.25); }
 .user-card { background: #fff; border-radius: 6px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; }
 .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: #0052CC; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
 .user-name { font-size: 15px; font-weight: 500; }
@@ -31,6 +35,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <span class="logo">TicketBoard</span>
     <a href="admin.html" style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:14px;">Admin</a>
   </div>
+  <div class="user-info" id="headerUser"></div>
 </div>
 <div class="container">
   <div class="section">
@@ -50,6 +55,14 @@ function initials(name) {
 
 async function init() {
   try {
+    var me = await fetch(API + '/me', { headers: { 'Content-Type': 'application/json' } }).then(function(r) { return r.json(); });
+    document.getElementById('headerUser').innerHTML =
+      '<span class="user-info-avatar">' + initials(me.displayName) + '</span>' +
+      '<span>' + h(me.displayName) + '</span>' +
+      '<form action="/logout" method="post" style="display:inline;margin:0;">' +
+      '<button class="logout-btn" type="submit">Logout</button>' +
+      '</form>';
+
     var projects = await fetch(API + '/projects', { headers: { 'Content-Type': 'application/json' } }).then(function(r) { return r.json(); });
 
     var projectHtml = '';

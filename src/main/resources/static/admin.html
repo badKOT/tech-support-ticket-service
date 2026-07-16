@@ -13,6 +13,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .logo a { color: #fff; text-decoration: none; }
 .nav-link { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 14px; }
 .nav-link:hover { color: #fff; }
+.user-info { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 14px; }
+.user-info-avatar { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.25); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.logout-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+.logout-btn:hover { background: rgba(255,255,255,0.25); }
 .container { max-width: 800px; margin: 0 auto; padding: 48px 24px; }
 .section { margin-bottom: 48px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -49,6 +53,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <a href="/" class="nav-link">Projects</a>
     <a href="admin.html" class="nav-link" style="color:#fff;">Admin</a>
   </div>
+  <div class="user-info" id="headerUser"></div>
 </div>
 <div class="container">
   <div class="section">
@@ -91,6 +96,14 @@ var users = [];
 var projects = [];
 
 async function init() {
+  var me = await fetch(API.replace('/admin', '') + '/me', { headers: { 'Content-Type': 'application/json' } }).then(function(r) { return r.json(); });
+  document.getElementById('headerUser').innerHTML =
+    '<span class="user-info-avatar">' + initials(me.displayName) + '</span>' +
+    '<span>' + h(me.displayName) + '</span>' +
+    '<form action="/logout" method="post" style="display:inline;margin:0;">' +
+    '<button class="logout-btn" type="submit">Logout</button>' +
+    '</form>';
+
   [users, projects] = await Promise.all([
     fetchJSON(API + '/users'),
     fetchJSON(API + '/projects')

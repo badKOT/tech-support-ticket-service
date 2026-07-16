@@ -25,6 +25,9 @@ public class User {
     @Column
     private String email;
 
+    @Column
+    private String password;
+
     public User(String username, String displayName, String email) {
         this.username = username;
         this.displayName = displayName;

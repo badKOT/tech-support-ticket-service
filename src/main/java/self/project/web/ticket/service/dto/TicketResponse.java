@@ -4,7 +4,6 @@ import self.project.web.ticket.service.entity.Ticket;
 import self.project.web.ticket.service.entity.TicketStatus;
 
 import java.time.Instant;
-import java.util.List;
 
 public record TicketResponse(
         Long id,
@@ -18,13 +17,9 @@ public record TicketResponse(
         Long creatorId,
         String creatorName,
         Instant createdAt,
-        Instant closedAt,
-        List<CommentResponse> comments) {
+        Instant closedAt) {
 
     public static TicketResponse from(Ticket ticket) {
-        List<CommentResponse> commentResponses = ticket.getComments().stream()
-                .map(CommentResponse::from)
-                .toList();
         return new TicketResponse(
                 ticket.getId(),
                 ticket.getTitle(),
@@ -37,7 +32,6 @@ public record TicketResponse(
                 ticket.getCreator().getId(),
                 ticket.getCreator().getDisplayName(),
                 ticket.getCreatedAt(),
-                ticket.getClosedAt(),
-                commentResponses);
+                ticket.getClosedAt());
     }
 }

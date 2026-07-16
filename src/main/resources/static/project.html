@@ -13,8 +13,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .logo a { color: #fff; text-decoration: none; }
 .project-select { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 14px; cursor: pointer; outline: none; }
 .project-select option { color: #172b4d; background: #fff; }
-.user-select { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 14px; cursor: pointer; outline: none; }
-.user-select option { color: #172b4d; background: #fff; }
+.user-info { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 14px; }
+.user-info-avatar { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.25); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.logout-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+.logout-btn:hover { background: rgba(255,255,255,0.25); }
 .container { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .toolbar h2 { font-size: 24px; font-weight: 600; }
@@ -92,7 +94,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <a href="admin.html" style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:14px;">Admin</a>
     <select class="project-select" id="projectSelect" onchange="switchProject(this.value)"></select>
   </div>
-  <select class="user-select" id="currentUser"></select>
+  <div class="user-info" id="headerUser"></div>
 </div>
 <div class="container" id="app"></div>
 
@@ -130,23 +132,18 @@ async function fetchJSON(url, opts) {
 }
 
 async function init() {
+  currentUser = await fetchJSON(API + '/me');
+  document.getElementById('headerUser').innerHTML =
+    '<span class="user-info-avatar">' + initials(currentUser.displayName) + '</span>' +
+    '<span>' + h(currentUser.displayName) + '</span>' +
+    '<form action="/logout" method="post" style="display:inline;margin:0;">' +
+    '<button class="logout-btn" type="submit">Logout</button>' +
+    '</form>';
+
   [projects, users] = await Promise.all([
     fetchJSON(API + '/projects'),
     fetchJSON(API + '/users')
   ]);
-
-  var savedUser = localStorage.getItem('currentUserId');
-  currentUser = users.find(u => u.id == savedUser) || users[0];
-  if (!currentUser) { document.getElementById('app').innerHTML = '<p>No users found.</p>'; return; }
-  document.getElementById('currentUser').innerHTML = users.map(u =>
-    '<option value="' + u.id + '" ' + (u.id === currentUser.id ? 'selected' : '') + '>' + h(u.displayName) + '</option>'
-  ).join('');
-
-  document.getElementById('currentUser').addEventListener('change', function() {
-    currentUser = users.find(u => u.id == this.value);
-    localStorage.setItem('currentUserId', currentUser.id);
-    render();
-  });
 
   var projectId = getQueryParam('id');
   if (projectId) {
