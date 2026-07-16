@@ -13,7 +13,7 @@ docker compose up -d
 Для схемы в бд использую hibernate.ddl-auto: update, скриптов для миграции схемы нет.
 
 Общий план:
-0. Create a basic crud that Kate will be able to build on top of. I feel like providing a good enough frontend would make a difference.
+0. Create a basic crud.
 1. Implement a basic username/password auth.
 2. RBAC. Request, Support Agent, Team Lead, Admin roles with different permissions.
 3. Password storage side quest: encryption, hashing, salting.
