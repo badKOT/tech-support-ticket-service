@@ -1,0 +1,3 @@
+security:
+  password:
+    pepper: test-pepper

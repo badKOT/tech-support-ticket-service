@@ -10,13 +10,38 @@ import java.time.Instant;
 import java.util.List;
 
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
+
     List<Ticket> findByProjectIdOrderByCreatedAtDesc(Long projectId);
 
-    @Modifying(clearAutomatically = true)
-    @Query("UPDATE Ticket t SET t.createdAt = :ts WHERE t.id = :id")
-    void updateCreatedAt(@Param("id") Long id, @Param("ts") Instant ts);
+    List<Ticket> findByProjectIdAndCreatorIdOrderByCreatedAtDesc(
+        Long projectId,
+        Long creatorId
+    );
+
+    List<Ticket> findByProjectIdAndAssigneeIdOrderByCreatedAtDesc(
+        Long projectId,
+        Long assigneeId
+    );
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE Ticket t SET t.closedAt = :ts WHERE t.id = :id")
-    void updateClosedAt(@Param("id") Long id, @Param("ts") Instant ts);
+    @Query("""
+        UPDATE Ticket t
+        SET t.createdAt = :ts
+        WHERE t.id = :id
+        """)
+    void updateCreatedAt(
+        @Param("id") Long id,
+        @Param("ts") Instant ts
+    );
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE Ticket t
+        SET t.closedAt = :ts
+        WHERE t.id = :id
+        """)
+    void updateClosedAt(
+        @Param("id") Long id,
+        @Param("ts") Instant ts
+    );
 }

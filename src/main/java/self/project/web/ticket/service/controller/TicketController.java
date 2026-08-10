@@ -1,5 +1,8 @@
 package self.project.web.ticket.service.controller;
 
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.RequiredArgsConstructor;
@@ -18,58 +21,103 @@ public class TicketController {
     private final TicketService ticketService;
 
     @GetMapping("/projects/{projectId}/tickets")
-    public List<TicketResponse> getTickets(@PathVariable Long projectId) {
-        log.info("[GET /projects/tickets] Got request! ProjectId = {}", projectId);
-        var result = ticketService.getTicketsByProject(projectId);
-        log.info("[GET /projects/tickets] Sending response");
-        return result;
+    public List<TicketResponse> getTickets(
+        @PathVariable Long projectId
+    ) {
+        log.info("[GET /projects/{}/tickets] Got request", projectId);
+
+        return ticketService.getTicketsByProject(projectId);
     }
 
     @GetMapping("/tickets/{ticketId}")
-    public TicketResponse getTicket(@PathVariable Long ticketId) {
-        log.info("[GET /tickets] Got request! TicketId = {}", ticketId);
-        var result = ticketService.getTicket(ticketId);
-        log.info("[GET /tickets] Sending response: {}", result);
-        return result;
+    public TicketResponse getTicket(
+        @PathVariable Long ticketId
+    ) {
+        log.info("[GET /tickets/{}] Got request", ticketId);
+
+        return ticketService.getTicket(ticketId);
     }
 
     @PostMapping("/projects/{projectId}/tickets")
-    public TicketResponse createTicket(@PathVariable Long projectId, @RequestBody TicketRequest request) {
-        log.info("[POST /projects/tickets] Got request! ProjectId = {}, Body = {}", projectId, request);
-        var result = ticketService.createTicket(projectId, request);
-        log.info("[POST /projects/tickets] Sending response: {}", result);
-        return result;
+    @ResponseStatus(HttpStatus.CREATED)
+    public TicketResponse createTicket(
+        @PathVariable Long projectId,
+        @Valid @RequestBody TicketRequest request
+    ) {
+        log.info("[POST /projects/{}/tickets] Got request, body = {}", projectId, request);
+
+        return ticketService.createTicket(projectId, request);
     }
 
     @PutMapping("/tickets/{ticketId}")
-    public TicketResponse updateTicket(@PathVariable Long ticketId, @RequestBody TicketUpdateRequest request) {
-        log.info("[PUT /projects/tickets] Got request! ProjectId = {}, Body = {}", ticketId, request);
-        var result = ticketService.updateTicket(ticketId, request);
-        log.info("[PUT /projects/tickets] Sending response: {}", result);
-        return result;
+    public TicketResponse updateTicket(
+        @PathVariable Long ticketId,
+        @Valid @RequestBody TicketUpdateRequest request
+    ) {
+        log.info("[PUT /tickets/{}] Got request, body = {}", ticketId, request);
+
+        return ticketService.updateTicket(ticketId, request);
+    }
+
+    @PatchMapping("/tickets/{ticketId}/status")
+    public TicketResponse changeStatus(
+        @PathVariable Long ticketId,
+        @Valid @RequestBody TicketStatusUpdateRequest request
+    ) {
+        log.info("[PATCH /tickets/{}/status] Got request, body = {}", ticketId, request);
+
+        return ticketService.changeStatus(ticketId, request);
+    }
+
+    @PatchMapping("/tickets/{ticketId}/assignee")
+    @PreAuthorize("hasAnyRole('TEAM_LEAD', 'ADMIN')")
+    public TicketResponse assignTicket(
+        @PathVariable Long ticketId,
+        @RequestBody TicketAssigneeUpdateRequest request
+    ) {
+        log.info("[PATCH /tickets/{}/assignee] Got request, body = {}", ticketId, request);
+
+        return ticketService.assignTicket(ticketId, request);
+    }
+
+    @DeleteMapping("/tickets/{ticketId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTicket(
+        @PathVariable Long ticketId
+    ) {
+        log.info("[DELETE /tickets/{}] Got request", ticketId);
+
+        ticketService.deleteTicket(ticketId);
     }
 
     @GetMapping("/tickets/{ticketId}/comments")
-    public List<CommentResponse> getComments(@PathVariable Long ticketId) {
-        log.info("[GET /tickets/comments] Got request! TicketId = {}", ticketId);
-        var result = ticketService.getComments(ticketId);
-        log.info("[GET /tickets/comments] Sending response");
-        return result;
+    public List<CommentResponse> getComments(
+        @PathVariable Long ticketId
+    ) {
+        log.info("[GET /tickets/{}/comments] Got request", ticketId);
+
+        return ticketService.getComments(ticketId);
     }
 
     @PostMapping("/tickets/{ticketId}/comments")
-    public CommentResponse addComment(@PathVariable Long ticketId, @RequestBody CommentRequest request) {
-        log.info("[POST /tickets/comments] Got request! TicketId = {}, Body = {}", ticketId, request);
-        var result = ticketService.addComment(ticketId, request);
-        log.info("[POST /tickets/comments] Sending response: {}", result);
-        return result;
+    @ResponseStatus(HttpStatus.CREATED)
+    public CommentResponse addComment(
+        @PathVariable Long ticketId,
+        @Valid @RequestBody CommentRequest request
+    ) {
+        log.info("[POST /tickets/{}/comments] Got request, body = {}", ticketId, request);
+
+        return ticketService.addComment(ticketId, request);
     }
 
     @GetMapping("/projects/{projectId}/analytics")
-    public ProjectAnalytics getProjectAnalytics(@PathVariable Long projectId) {
-        log.info("[GET /projects/{}/analytics] Got request!", projectId);
-        var result = ticketService.getProjectAnalytics(projectId);
-        log.info("[GET /projects/{}/analytics] Sending response", projectId);
-        return result;
+    @PreAuthorize("hasAnyRole('TEAM_LEAD', 'ADMIN')")
+    public ProjectAnalytics getProjectAnalytics(
+        @PathVariable Long projectId
+    ) {
+        log.info("[GET /projects/{}/analytics] Got request", projectId);
+
+        return ticketService.getProjectAnalytics(projectId);
     }
 }
