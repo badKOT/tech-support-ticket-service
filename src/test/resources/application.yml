@@ -18,3 +18,7 @@ spring:
   logging:
     level:
       org.springframework.security: WARN
+
+security:
+    password:
+      pepper: ${PASSWORD_PEPPER:test-pepper}

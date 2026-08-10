@@ -1,7 +1,6 @@
 package self.project.web.ticket.service.service;
 
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +21,7 @@ public class AdminService {
 
     private final UserRepository userRepo;
     private final ProjectRepository projectRepo;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordService passwordService;
 
     public List<UserResponse> getUsers() {
         return userRepo.findAll()
@@ -32,26 +31,24 @@ public class AdminService {
     }
 
     @Transactional
-    public UserResponse createUser(UserCreateRequest request) {
-        String username = request.username().trim();
-
-        if (userRepo.existsByUsername(username)) {
-            throw new IllegalArgumentException(
-                "Username is already occupied: " + username
-            );
-        }
+    public UserResponse createUser(
+        UserCreateRequest request
+    ) {
+        PasswordService.PasswordData passwordData =
+            passwordService.encode(request.password());
 
         User user = new User(
-            username,
-            request.displayName().trim(),
+            request.username(),
+            request.displayName(),
             request.email(),
-            passwordEncoder.encode(request.password()),
+            passwordData.passwordHash(),
+            passwordData.salt(),
             request.role()
         );
 
-        User savedUser = userRepo.save(user);
+        user = userRepo.save(user);
 
-        return UserResponse.from(savedUser);
+        return UserResponse.from(user);
     }
 
     @Transactional
@@ -97,8 +94,16 @@ public class AdminService {
 
         if (request.password() != null
             && !request.password().isBlank()) {
+
+            PasswordService.PasswordData passwordData =
+                passwordService.encode(request.password());
+
             user.setPasswordHash(
-                passwordEncoder.encode(request.password())
+                passwordData.passwordHash()
+            );
+
+            user.setSalt(
+                passwordData.salt()
             );
         }
 
@@ -109,6 +114,7 @@ public class AdminService {
         if (request.enabled() != null) {
             user.setEnabled(request.enabled());
         }
+
         return UserResponse.from(user);
     }
 
@@ -154,16 +160,20 @@ public class AdminService {
 
         if (request.name() != null
             && !request.name().isBlank()) {
+
             project.setName(request.name());
         }
 
         if (request.key() != null
             && !request.key().isBlank()) {
+
             project.setKey(request.key());
         }
 
         if (request.description() != null) {
-            project.setDescription(request.description());
+            project.setDescription(
+                request.description()
+            );
         }
 
         project = projectRepo.save(project);

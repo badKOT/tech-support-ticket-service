@@ -6,14 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
@@ -23,6 +19,7 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import self.project.web.ticket.service.security.DatabaseAuthenticationProvider;
 
 @Configuration
 @EnableMethodSecurity
@@ -32,28 +29,21 @@ public class SecurityConfig {
         "/api/auth/login",
         "/api/auth/csrf",
         "/api/init-db",
+
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/v3/api-docs/**",
-        "/actuator/health/**"
+
+        "/actuator/health",
+        "/actuator/health/**",
+        "/actuator/info"
     };
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-    }
-
-    @Bean
     public AuthenticationManager authenticationManager(
-        UserDetailsService userDetailsService,
-        PasswordEncoder passwordEncoder
+        DatabaseAuthenticationProvider authenticationProvider
     ) {
-        DaoAuthenticationProvider provider =
-            new DaoAuthenticationProvider(userDetailsService);
-
-        provider.setPasswordEncoder(passwordEncoder);
-
-        return new ProviderManager(provider);
+        return new ProviderManager(authenticationProvider);
     }
 
     @Bean
@@ -70,12 +60,16 @@ public class SecurityConfig {
     public SessionAuthenticationStrategy sessionAuthenticationStrategy(
         CsrfTokenRepository csrfTokenRepository
     ) {
+        ChangeSessionIdAuthenticationStrategy sessionIdStrategy =
+            new ChangeSessionIdAuthenticationStrategy();
+
+        CsrfAuthenticationStrategy csrfStrategy =
+            new CsrfAuthenticationStrategy(csrfTokenRepository);
+
         return new CompositeSessionAuthenticationStrategy(
             List.of(
-                new ChangeSessionIdAuthenticationStrategy(),
-                new CsrfAuthenticationStrategy(
-                    csrfTokenRepository
-                )
+                sessionIdStrategy,
+                csrfStrategy
             )
         );
     }
@@ -105,42 +99,61 @@ public class SecurityConfig {
             )
 
             .csrf(csrf -> csrf
-                .csrfTokenRepository(csrfTokenRepository)
+                .csrfTokenRepository(
+                    csrfTokenRepository
+                )
+
+                .ignoringRequestMatchers(
+                    "/api/auth/login"
+                )
             )
 
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                .requestMatchers(
+                    PUBLIC_ENDPOINTS
+                ).permitAll()
 
-                .requestMatchers("/api/admin/**")
-                .hasRole("ADMIN")
+                .requestMatchers(
+                    "/api/admin/**"
+                ).hasRole("ADMIN")
 
-                .anyRequest().authenticated()
+                .anyRequest()
+                .authenticated()
             )
 
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(
                     (request, response, exception) ->
                         response.sendError(
-                            HttpServletResponse
-                                .SC_UNAUTHORIZED
+                            HttpServletResponse.SC_UNAUTHORIZED
                         )
                 )
+
                 .accessDeniedHandler(
                     (request, response, exception) ->
                         response.sendError(
-                            HttpServletResponse
-                                .SC_FORBIDDEN
+                            HttpServletResponse.SC_FORBIDDEN
                         )
                 )
             )
 
-            .formLogin(AbstractHttpConfigurer::disable)
-            .httpBasic(AbstractHttpConfigurer::disable)
+            .formLogin(
+                AbstractHttpConfigurer::disable
+            )
+
+            .httpBasic(
+                AbstractHttpConfigurer::disable
+            )
 
             .logout(logout -> logout
-                .logoutUrl("/api/auth/logout")
+                .logoutUrl(
+                    "/api/auth/logout"
+                )
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
+                .clearAuthentication(true)
+                .deleteCookies(
+                    "JSESSIONID"
+                )
                 .logoutSuccessHandler(
                     (request, response, authentication) ->
                         response.setStatus(

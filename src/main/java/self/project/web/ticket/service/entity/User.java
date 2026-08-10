@@ -28,6 +28,9 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(name = "salt", nullable = false, unique = true)
+    private String salt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private UserRole role;
@@ -40,12 +43,14 @@ public class User {
         String displayName,
         String email,
         String passwordHash,
+        String salt,
         UserRole role
     ) {
         this.username = username;
         this.displayName = displayName;
         this.email = email;
         this.passwordHash = passwordHash;
+        this.salt = salt;
         this.role = role;
         this.enabled = true;
     }

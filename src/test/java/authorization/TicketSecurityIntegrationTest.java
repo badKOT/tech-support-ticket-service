@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import self.project.web.ticket.service.entity.User;
+import self.project.web.ticket.service.service.PasswordService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -49,7 +50,7 @@ class TicketSecurityIntegrationTest {
     private CommentRepository commentRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private PasswordService passwordService;
 
     private User alice;
     private User eve;
@@ -333,11 +334,15 @@ class TicketSecurityIntegrationTest {
         String displayName,
         UserRole role
     ) {
+        PasswordService.PasswordData passwordData =
+            passwordService.encode("password123");
+
         User user = new User(
             username,
             displayName,
             username + "@example.com",
-            passwordEncoder.encode("password123"),
+            passwordData.passwordHash(),
+            passwordData.salt(),
             role
         );
 

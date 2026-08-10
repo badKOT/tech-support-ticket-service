@@ -1,7 +1,6 @@
 package authorization;
-
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,11 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import self.project.web.ticket.service.Runner;
+import self.project.web.ticket.service.entity.User;
 import self.project.web.ticket.service.entity.UserRole;
 import self.project.web.ticket.service.repository.UserRepository;
-
-
-import self.project.web.ticket.service.entity.User;
+import self.project.web.ticket.service.service.PasswordService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -30,7 +28,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthIntegrationTest {
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -38,29 +35,32 @@ class AuthIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+    private PasswordService passwordService;
 
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
 
-        User admin = new User(
+        PasswordService.PasswordData passwordData =
+            passwordService.encode("diana123");
+
+        User diana = new User(
             "diana",
             "Diana Prince",
             "diana@example.com",
-            passwordEncoder.encode("diana123"),
+            passwordData.passwordHash(),
+            passwordData.salt(),
             UserRole.ADMIN
         );
 
-        userRepository.save(admin);
+        userRepository.save(diana);
     }
 
     @Test
     void shouldReturn401WhenUserIsNotAuthenticated() throws Exception {
-        mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
+        mockMvc.perform(
+            get("/api/auth/me")
+        ).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -120,9 +120,10 @@ class AuthIntegrationTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        HttpSession session = loginResult
-            .getRequest()
-            .getSession(false);
+        HttpSession session =
+            loginResult
+                .getRequest()
+                .getSession(false);
 
         assertThat(session).isNotNull();
 
