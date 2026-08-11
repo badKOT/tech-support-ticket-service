@@ -5,6 +5,8 @@ import {
 } from 'react-router-dom'
 
 import { useAuth } from './auth/AuthContext'
+
+import AdminPage from './pages/AdminPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ProjectPage from './pages/ProjectPage'
@@ -18,7 +20,40 @@ function ProtectedRoute({ children }) {
   }
 
   if (!currentUser) {
-    return <Navigate to="/login" replace />
+    return (
+        <Navigate
+            to="/login"
+            replace
+        />
+    )
+  }
+
+  return children
+}
+
+function AdminRoute({ children }) {
+  const { currentUser, loading } = useAuth()
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (!currentUser) {
+    return (
+        <Navigate
+            to="/login"
+            replace
+        />
+    )
+  }
+
+  if (currentUser.role !== 'ADMIN') {
+    return (
+        <Navigate
+            to="/"
+            replace
+        />
+    )
   }
 
   return children
@@ -56,6 +91,25 @@ export default function App() {
               <ProtectedRoute>
                 <TicketPage />
               </ProtectedRoute>
+            }
+        />
+
+        <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
+            }
+        />
+
+        <Route
+            path="*"
+            element={
+              <Navigate
+                  to="/"
+                  replace
+              />
             }
         />
       </Routes>

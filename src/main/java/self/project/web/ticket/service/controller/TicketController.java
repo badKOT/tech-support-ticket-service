@@ -69,6 +69,14 @@ public class TicketController {
         return ticketService.changeStatus(ticketId, request);
     }
 
+    @GetMapping("/ticket-assignees")
+    @PreAuthorize("hasAnyRole('TEAM_LEAD', 'ADMIN')")
+    public List<UserResponse> getAvailableAssignees() {
+        log.info("[GET /ticket-assignees] Got request");
+
+        return ticketService.getAvailableAssignees();
+    }
+
     @PatchMapping("/tickets/{ticketId}/assignee")
     @PreAuthorize("hasAnyRole('TEAM_LEAD', 'ADMIN')")
     public TicketResponse assignTicket(

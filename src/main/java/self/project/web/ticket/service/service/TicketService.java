@@ -29,28 +29,34 @@ public class TicketService {
     private final CurrentUserService currentUserService;
     private final TicketAccessService ticketAccessService;
 
-    public List<TicketResponse> getTicketsByProject(Long projectId) {
+    public List<TicketResponse> getTicketsByProject(
+        Long projectId
+    ) {
         getProjectOrThrow(projectId);
 
-        User currentUser = currentUserService.getCurrentUser();
+        User currentUser =
+            currentUserService.getCurrentUser();
 
-        List<Ticket> tickets = switch (currentUser.getRole()) {
-            case ADMIN, TEAM_LEAD -> ticketRepo.findByProjectIdOrderByCreatedAtDesc(
-                projectId
-            );
+        List<Ticket> tickets =
+            switch (currentUser.getRole()) {
 
-            case REQUESTER -> ticketRepo
-                .findByProjectIdAndCreatorIdOrderByCreatedAtDesc(
-                    projectId,
-                    currentUser.getId()
-                );
+                case ADMIN, TEAM_LEAD -> ticketRepo
+                    .findByProjectIdOrderByCreatedAtDesc(
+                        projectId
+                    );
 
-            case SUPPORT_AGENT -> ticketRepo
-                .findByProjectIdAndAssigneeIdOrderByCreatedAtDesc(
-                    projectId,
-                    currentUser.getId()
-                );
-        };
+                case REQUESTER -> ticketRepo
+                    .findByProjectIdAndCreatorIdOrderByCreatedAtDesc(
+                        projectId,
+                        currentUser.getId()
+                    );
+
+                case SUPPORT_AGENT -> ticketRepo
+                    .findVisibleToSupportAgent(
+                        projectId,
+                        currentUser.getId()
+                    );
+            };
 
         return tickets.stream()
             .map(TicketResponse::from)
@@ -171,6 +177,18 @@ public class TicketService {
         }
 
         return TicketResponse.from(ticket);
+    }
+
+    public List<UserResponse> getAvailableAssignees() {
+        return userRepo.findAll()
+            .stream()
+            .filter(User::isEnabled)
+            .filter(user ->
+                user.getRole() == UserRole.SUPPORT_AGENT
+                    || user.getRole() == UserRole.TEAM_LEAD
+            )
+            .map(UserResponse::from)
+            .toList();
     }
 
     @Transactional

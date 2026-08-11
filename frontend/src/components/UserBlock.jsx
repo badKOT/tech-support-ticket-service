@@ -35,6 +35,15 @@ export default function UserBlock() {
         </span>
         </div>
 
+        {currentUser.role === 'ADMIN' && (
+            <button
+                type="button"
+                onClick={() => navigate('/admin')}
+            >
+              Админка
+            </button>
+        )}
+
         <button
             type="button"
             onClick={handleLogout}

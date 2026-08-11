@@ -50,10 +50,9 @@ button {
 
   padding: 24px;
 
-  background:
-      radial-gradient(circle at top left, #273754 0, transparent 38%),
-      radial-gradient(circle at bottom right, #302b4d 0, transparent 38%),
-      #1f2329;
+  background: radial-gradient(circle at top left, #273754 0, transparent 38%),
+  radial-gradient(circle at bottom right, #302b4d 0, transparent 38%),
+  #1f2329;
 }
 
 .login-card {
@@ -67,9 +66,8 @@ button {
   border: 1px solid #383e47;
   border-radius: 16px;
 
-  box-shadow:
-      0 20px 30px -8px rgba(0, 0, 0, 0.35),
-      0 8px 12px -8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 20px 30px -8px rgba(0, 0, 0, 0.35),
+  0 8px 12px -8px rgba(0, 0, 0, 0.25);
 }
 
 .login-card h1 {
@@ -115,9 +113,8 @@ button {
 
   outline: none;
 
-  transition:
-      border-color 0.15s ease,
-      box-shadow 0.15s ease;
+  transition: border-color 0.15s ease,
+  box-shadow 0.15s ease;
 }
 
 .login-card input::placeholder {
@@ -127,8 +124,7 @@ button {
 .login-card input:focus {
   border-color: #5d8fdc;
 
-  box-shadow:
-      0 0 0 3px rgba(93, 143, 220, 0.15);
+  box-shadow: 0 0 0 3px rgba(93, 143, 220, 0.15);
 }
 
 .login-card button {
@@ -145,9 +141,8 @@ button {
 
   font-weight: 600;
 
-  transition:
-      background 0.15s ease,
-      transform 0.05s ease;
+  transition: background 0.15s ease,
+  transform 0.05s ease;
 }
 
 .login-card button:hover {
@@ -200,8 +195,7 @@ button {
 
   border-bottom: 1px solid #383e47;
 
-  box-shadow:
-      0 1px 4px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
 
 .app-brand {
@@ -288,10 +282,9 @@ button {
   font-size: 15px;
   font-weight: 600;
 
-  transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      transform 0.05s ease;
+  transition: background 0.15s ease,
+  border-color 0.15s ease,
+  transform 0.05s ease;
 }
 
 .user-block button:hover {
@@ -346,8 +339,7 @@ button {
   border: 1px solid #383e47;
   border-radius: 12px;
 
-  box-shadow:
-      0 2px 5px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
 }
 
 
@@ -383,14 +375,12 @@ button {
   border: 1px solid #383e47;
   border-radius: 12px;
 
-  box-shadow:
-      0 2px 5px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
 
-  transition:
-      transform 0.15s ease,
-      background 0.15s ease,
-      box-shadow 0.15s ease,
-      border-color 0.15s ease;
+  transition: transform 0.15s ease,
+  background 0.15s ease,
+  box-shadow 0.15s ease,
+  border-color 0.15s ease;
 }
 
 .project-card:hover {
@@ -400,8 +390,7 @@ button {
 
   border-color: #4d5662;
 
-  box-shadow:
-      0 8px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .project-card:active {
@@ -458,9 +447,8 @@ button {
 
   font-size: 20px;
 
-  transition:
-      color 0.15s ease,
-      transform 0.15s ease;
+  transition: color 0.15s ease,
+  transform 0.15s ease;
 }
 
 .project-card:hover .project-arrow {
@@ -508,14 +496,12 @@ button {
   border: 1px solid #383e47;
   border-radius: 12px;
 
-  box-shadow:
-      0 2px 5px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
 
-  transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      box-shadow 0.15s ease,
-      transform 0.15s ease;
+  transition: background 0.15s ease,
+  border-color 0.15s ease,
+  box-shadow 0.15s ease,
+  transform 0.15s ease;
 }
 
 .ticket-card:hover {
@@ -525,8 +511,7 @@ button {
 
   border-color: #4d5662;
 
-  box-shadow:
-      0 6px 16px rgba(0, 0, 0, 0.17);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.17);
 }
 
 .ticket-main {
@@ -685,8 +670,7 @@ button {
   border: 1px solid #383e47;
   border-radius: 14px;
 
-  box-shadow:
-      0 3px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 }
 
 .ticket-details-header {
@@ -979,9 +963,8 @@ button {
 
   line-height: 1.5;
 
-  transition:
-      border-color 0.15s ease,
-      box-shadow 0.15s ease;
+  transition: border-color 0.15s ease,
+  box-shadow 0.15s ease;
 }
 
 .comment-form textarea::placeholder {
@@ -991,8 +974,7 @@ button {
 .comment-form textarea:focus {
   border-color: #5d8fdc;
 
-  box-shadow:
-      0 0 0 3px rgba(93, 143, 220, 0.14);
+  box-shadow: 0 0 0 3px rgba(93, 143, 220, 0.14);
 }
 
 .comment-form-actions {
@@ -1021,4 +1003,655 @@ button {
 .comment-form-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+/* =========================================================
+   STATUS CONTROL
+   ========================================================= */
+
+.ticket-status-control {
+  flex-shrink: 0;
+}
+
+.ticket-status-control select {
+  min-width: 150px;
+
+  padding: 8px 10px;
+
+  background: #20252b;
+  color: #d7dce3;
+
+  border: 1px solid #454c56;
+  border-radius: 8px;
+
+  outline: none;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.ticket-status-control select:hover {
+  border-color: #59616d;
+}
+
+.ticket-status-control select:focus {
+  border-color: #5d8fdc;
+
+  box-shadow: 0 0 0 3px rgba(93, 143, 220, 0.14);
+}
+
+.ticket-status-control select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.ticket-action-error {
+  margin-top: 18px;
+  margin-bottom: 0;
+}
+
+/* =========================================================
+   TICKET ACTIONS
+   ========================================================= */
+
+.ticket-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.ticket-action-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ticket-action-label {
+  color: #818b98;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ticket-action-field select {
+  min-width: 170px;
+
+  padding: 8px 10px;
+
+  background: #20252b;
+  color: #d7dce3;
+
+  border: 1px solid #454c56;
+  border-radius: 8px;
+
+  outline: none;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.ticket-action-field select:hover {
+  border-color: #59616d;
+}
+
+.ticket-action-field select:focus {
+  border-color: #5d8fdc;
+
+  box-shadow: 0 0 0 3px rgba(93, 143, 220, 0.14);
+}
+
+.ticket-action-field select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+/* =========================================================
+   TICKET EDITING
+   ========================================================= */
+
+.ticket-content-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.ticket-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.ticket-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ticket-edit-field span {
+  color: #929ba7;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ticket-edit-field input,
+.ticket-edit-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 11px 12px;
+
+  background: #20252b;
+  color: #d7dce3;
+
+  border: 1px solid #454c56;
+  border-radius: 8px;
+
+  outline: none;
+
+  font: inherit;
+}
+
+.ticket-edit-field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.ticket-edit-field input:focus,
+.ticket-edit-field textarea:focus {
+  border-color: #5d8fdc;
+
+  box-shadow: 0 0 0 3px rgba(93, 143, 220, 0.14);
+}
+
+.ticket-edit-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ticket-primary-button,
+.ticket-secondary-button,
+.ticket-delete-button {
+  padding: 9px 14px;
+
+  border-radius: 8px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.ticket-primary-button {
+  background: #4d78b8;
+  color: #fff;
+  border: 1px solid #5d8fdc;
+}
+
+.ticket-secondary-button {
+  background: #252b32;
+  color: #d7dce3;
+  border: 1px solid #454c56;
+}
+
+.ticket-delete-button {
+  background: rgba(190, 65, 65, 0.1);
+  color: #e48b8b;
+  border: 1px solid rgba(190, 65, 65, 0.4);
+}
+
+.ticket-primary-button:hover {
+  background: #5885c5;
+}
+
+.ticket-secondary-button:hover {
+  background: #2d343c;
+}
+
+.ticket-delete-button:hover {
+  background: rgba(190, 65, 65, 0.18);
+}
+
+.ticket-primary-button:disabled,
+.ticket-secondary-button:disabled,
+.ticket-delete-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.project-page-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.project-page-title p {
+  margin: 6px 0 0;
+
+  color: #818b98;
+  font-size: 13px;
+}
+
+.ticket-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  margin-bottom: 24px;
+}
+
+.ticket-create-heading h3 {
+  margin: 0;
+
+  color: #d7dce3;
+  font-size: 18px;
+}
+
+.ticket-create-heading p {
+  margin: 5px 0 0;
+
+  color: #818b98;
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .project-page-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* =========================================================
+   ADMIN
+   ========================================================= */
+
+.admin-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-user-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px 24px;
+
+  padding: 18px 20px;
+
+  background: #252a30;
+
+  border: 1px solid #353b43;
+  border-radius: 10px;
+}
+
+.admin-user-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  background: #343b44;
+  color: #d7dce3;
+
+  border-radius: 50%;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.admin-user-main h3 {
+  margin: 0;
+
+  color: #d7dce3;
+
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.admin-username {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #818b98;
+
+  font-size: 12px;
+}
+
+.admin-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-user-role {
+  padding: 5px 8px;
+
+  background: #343b44;
+  color: #b9c1cb;
+
+  border-radius: 6px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 0.04em;
+}
+
+.admin-user-enabled,
+.admin-user-disabled {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-user-enabled {
+  color: #7eb88b;
+}
+
+.admin-user-disabled {
+  color: #d27d7d;
+}
+
+.admin-user-email {
+  grid-column: 1 / -1;
+
+  padding-top: 10px;
+
+  color: #929ba7;
+
+  border-top: 1px solid #353b43;
+
+  font-size: 12px;
+}
+
+.admin-page-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-page-title p {
+  margin: 6px 0 0;
+
+  color: #818b98;
+  font-size: 13px;
+}
+
+.admin-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  margin-bottom: 24px;
+}
+
+.admin-create-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+.admin-create-grid select {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 11px 12px;
+
+  background: #20252b;
+  color: #d7dce3;
+
+  border: 1px solid #454c56;
+  border-radius: 8px;
+
+  outline: none;
+
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-create-grid select:focus {
+  border-color: #5d8fdc;
+
+  box-shadow: 0 0 0 3px rgba(93, 143, 220, 0.14);
+}
+
+@media (max-width: 700px) {
+  .admin-page-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-create-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   ADMIN USER EDIT
+   ========================================================= */
+
+.admin-user-edit-form {
+  grid-column: 1 / -1;
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  width: 100%;
+}
+
+.admin-edit-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-edit-heading h3 {
+  margin: 0;
+
+  color: #d7dce3;
+  font-size: 16px;
+}
+
+.admin-edit-heading > span {
+  color: #818b98;
+  font-size: 12px;
+}
+
+.admin-enabled-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  align-self: end;
+
+  min-height: 42px;
+
+  color: #b9c1cb;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.admin-enabled-field input {
+  width: 17px;
+  height: 17px;
+
+  cursor: pointer;
+}
+
+.admin-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-delete-button {
+  padding: 8px 12px;
+
+  background: transparent;
+  color: #d77c7c;
+
+  border: 1px solid #684047;
+  border-radius: 7px;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+}
+
+.admin-delete-button:hover:not(:disabled) {
+  background: rgba(215, 124, 124, 0.1);
+  border-color: #8a5058;
+}
+
+.admin-delete-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   ADMIN USER SECTIONS
+   ========================================================= */
+
+.admin-users-container {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+.admin-users-section {
+  width: 100%;
+}
+
+.admin-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
+.admin-section-heading h3 {
+  margin: 0;
+
+  color: #d7dce3;
+
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.admin-section-heading p {
+  margin: 4px 0 0;
+
+  color: #818b98;
+
+  font-size: 12px;
+}
+
+.admin-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 25px;
+  height: 25px;
+
+  padding: 0 8px;
+
+  background: #343b44;
+  color: #b9c1cb;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+/* DISABLED USERS */
+
+.disabled-users-section {
+  padding-top: 4px;
+
+  border-top: 1px solid #343a42;
+}
+
+.admin-disabled-toggle {
+  display: block;
+
+  width: 100%;
+  padding: 18px 0 4px;
+
+  background: transparent;
+  color: inherit;
+
+  border: 0;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.admin-disabled-toggle:hover h3 {
+  color: #ffffff;
+}
+
+.admin-section-heading-toggle {
+  margin: 0;
+}
+
+.admin-disabled-heading-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-disabled-arrow {
+  width: 16px;
+
+  color: #818b98;
+
+  font-size: 10px;
+
+  text-align: center;
+}
+
+.admin-user-card-disabled {
+  opacity: 0.72;
+}
+
+.admin-user-card-disabled:hover {
+  opacity: 0.9;
 }

@@ -20,7 +20,12 @@ async function request(path, options = {}) {
     return null
   }
 
-  return response.json()
+  const text = await response.text()
+
+  if (!text) {
+    return null
+  }
+  return JSON.parse(text)
 }
 
 export function login(username, password) {
@@ -82,5 +87,111 @@ export async function addTicketComment(ticketId, content, authorId) {
       content,
       authorId,
     }),
+  })
+}
+
+export async function updateTicket(ticketId, updates) {
+  const csrf = await getCsrfToken()
+
+  return request(`/api/tickets/${ticketId}`, {
+    method: 'PUT',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
+    body: JSON.stringify(updates),
+  })
+}
+
+export async function changeTicketStatus(ticketId, status) {
+  const csrf = await getCsrfToken()
+
+  return request(`/api/tickets/${ticketId}/status`, {
+    method: 'PATCH',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
+    body: JSON.stringify({
+      status,
+    }),
+  })
+}
+
+export async function assignTicket(ticketId, assigneeId) {
+  const csrf = await getCsrfToken()
+
+  return request(`/api/tickets/${ticketId}/assignee`, {
+    method: 'PATCH',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
+    body: JSON.stringify({
+      assigneeId,
+    }),
+  })
+}
+
+export async function deleteTicket(ticketId) {
+  const csrf = await getCsrfToken()
+
+  return request(`/api/tickets/${ticketId}`, {
+    method: 'DELETE',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
+  })
+}
+
+export function getAvailableAssignees() {
+  return request('/api/ticket-assignees')
+}
+
+export async function createTicket(projectId, payload) {
+  const csrf = await getCsrfToken()
+
+  return request(`/api/projects/${projectId}/tickets`, {
+    method: 'POST',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function getAdminUsers() {
+  return request('/api/admin/users')
+}
+
+export async function createAdminUser(payload) {
+  const csrf = await getCsrfToken()
+
+  return request('/api/admin/users', {
+    method: 'POST',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateAdminUser(userId, payload) {
+  const csrf = await getCsrfToken()
+
+  return request(`/api/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteAdminUser(userId) {
+  const csrf = await getCsrfToken()
+
+  return request(`/api/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
   })
 }

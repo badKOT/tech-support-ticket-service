@@ -18,11 +18,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         Long creatorId
     );
 
-    List<Ticket> findByProjectIdAndAssigneeIdOrderByCreatedAtDesc(
-        Long projectId,
-        Long assigneeId
-    );
-
     @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE Ticket t
@@ -43,5 +38,20 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     void updateClosedAt(
         @Param("id") Long id,
         @Param("ts") Instant ts
+    );
+
+    @Query("""
+        SELECT t
+        FROM Ticket t
+        WHERE t.project.id = :projectId
+          AND (
+              t.assignee.id = :userId
+              OR t.creator.id = :userId
+          )
+        ORDER BY t.createdAt DESC
+        """)
+    List<Ticket> findVisibleToSupportAgent(
+        @Param("projectId") Long projectId,
+        @Param("userId") Long userId
     );
 }
