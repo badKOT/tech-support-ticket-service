@@ -8,11 +8,9 @@
 
 - Перезапуск: `.\devRestart.ps1`
 
-Запуск вручную
+Запуск вручную:
 Backend: `.\gradlew.bat bootRun`
-Frontend: `cd frontend
-            npm install
-            npm run dev`
+Frontend: `cd frontend`, `npm install`, `npm run dev`
 
 Приложение будет доступно по `localhost:8080`. Swagger по `localhost:8080/swagger-ui/index.html`.
 
