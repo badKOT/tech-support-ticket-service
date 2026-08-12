@@ -78,14 +78,17 @@ public class TicketController {
     }
 
     @PatchMapping("/tickets/{ticketId}/assignee")
-    @PreAuthorize("hasAnyRole('TEAM_LEAD', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPPORT_AGENT', 'TEAM_LEAD', 'ADMIN')")
     public TicketResponse assignTicket(
         @PathVariable Long ticketId,
-        @RequestBody TicketAssigneeUpdateRequest request
-    ) {
-        log.info("[PATCH /tickets/{}/assignee] Got request, body = {}", ticketId, request);
+        @RequestBody TicketAssigneeUpdateRequest request) {
+        log.info("[PATCH /tickets/{}/assignee] Got request, body = {}",
+            ticketId,
+            request);
 
-        return ticketService.assignTicket(ticketId, request);
+        return ticketService.assignTicket(
+            ticketId,
+            request);
     }
 
     @DeleteMapping("/tickets/{ticketId}")

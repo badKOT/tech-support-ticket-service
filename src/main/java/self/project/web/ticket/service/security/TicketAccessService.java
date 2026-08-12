@@ -8,31 +8,24 @@ import self.project.web.ticket.service.entity.User;
 @Service
 public class TicketAccessService {
 
+    /**
+     * Все авторизованные пользователи могут просматривать
+     * любые тикеты.
+     */
     public boolean canRead(
         Ticket ticket,
         User currentUser
     ) {
-        return switch (currentUser.getRole()) {
-            case ADMIN, TEAM_LEAD -> true;
-
-            case REQUESTER ->
-                isSameUser(
-                    ticket.getCreator(),
-                    currentUser
-                );
-
-            case SUPPORT_AGENT ->
-                isSameUser(
-                    ticket.getAssignee(),
-                    currentUser
-                )
-                    || isSameUser(
-                    ticket.getCreator(),
-                    currentUser
-                );
-        };
+        return currentUser != null;
     }
 
+    /**
+     * Изменение title / description.
+     *
+     * ADMIN / TEAM_LEAD — любой тикет.
+     * REQUESTER — только свой тикет в статусе OPEN.
+     * SUPPORT_AGENT — нельзя.
+     */
     public boolean canEditContent(
         Ticket ticket,
         User currentUser
@@ -52,9 +45,20 @@ public class TicketAccessService {
         };
     }
 
+    /**
+     * Изменение статуса.
+     *
+     * ADMIN / TEAM_LEAD — любой переход.
+     *
+     * SUPPORT_AGENT — только если тикет назначен на него.
+     *
+     * REQUESTER — только собственный тикет:
+     * CLOSED / RESOLVED -> REOPENED.
+     */
     public boolean canChangeStatus(
         Ticket ticket,
-        User currentUser
+        User currentUser,
+        TicketStatus targetStatus
     ) {
         return switch (currentUser.getRole()) {
             case ADMIN, TEAM_LEAD -> true;
@@ -65,25 +69,54 @@ public class TicketAccessService {
                     currentUser
                 );
 
+            case REQUESTER ->
+                canRequesterReopen(
+                    ticket,
+                    currentUser,
+                    targetStatus
+                );
+        };
+    }
+
+    /**
+     * Назначение исполнителя.
+     *
+     * ADMIN / TEAM_LEAD могут назначать исполнителей
+     * и снимать назначение.
+     *
+     * SUPPORT_AGENT может только назначить самого себя.
+     *
+     * REQUESTER назначать исполнителей не может.
+     */
+    public boolean canManageAssignment(
+        User currentUser,
+        User newAssignee
+    ) {
+        return switch (currentUser.getRole()) {
+            case ADMIN, TEAM_LEAD -> true;
+
+            case SUPPORT_AGENT ->
+                newAssignee != null
+                    && isSameUser(
+                    currentUser,
+                    newAssignee
+                );
+
             case REQUESTER -> false;
         };
     }
 
-    public boolean canManageAssignment(
-        User currentUser
-    ) {
-        return switch (currentUser.getRole()) {
-            case ADMIN, TEAM_LEAD -> true;
-            case REQUESTER, SUPPORT_AGENT -> false;
-        };
-    }
-
+    /**
+     * Перенос тикета между проектами.
+     */
     public boolean canMoveTicket(
         User currentUser
     ) {
         return switch (currentUser.getRole()) {
             case ADMIN, TEAM_LEAD -> true;
-            case REQUESTER, SUPPORT_AGENT -> false;
+
+            case REQUESTER,
+                 SUPPORT_AGENT -> false;
         };
     }
 
@@ -92,8 +125,32 @@ public class TicketAccessService {
     ) {
         return switch (currentUser.getRole()) {
             case ADMIN, TEAM_LEAD -> true;
-            case REQUESTER, SUPPORT_AGENT -> false;
+
+            case REQUESTER,
+                 SUPPORT_AGENT -> false;
         };
+    }
+
+    private boolean canRequesterReopen(
+        Ticket ticket,
+        User currentUser,
+        TicketStatus targetStatus
+    ) {
+        if (!isSameUser(
+            ticket.getCreator(),
+            currentUser
+        )) {
+            return false;
+        }
+
+        boolean currentStatusAllowsReopen =
+            ticket.getStatus() == TicketStatus.CLOSED
+                || ticket.getStatus()
+                == TicketStatus.RESOLVED;
+
+        return currentStatusAllowsReopen
+            && targetStatus
+            == TicketStatus.REOPENED;
     }
 
     private boolean isSameUser(

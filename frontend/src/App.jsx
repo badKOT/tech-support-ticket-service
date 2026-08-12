@@ -11,6 +11,7 @@ import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ProjectPage from './pages/ProjectPage'
 import TicketPage from './pages/TicketPage'
+import ProjectAnalyticsPage from './pages/ProjectAnalyticsPage'
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth()
@@ -59,6 +60,38 @@ function AdminRoute({ children }) {
   return children
 }
 
+function AnalyticsRoute({ children }) {
+  const { currentUser, loading } = useAuth()
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (!currentUser) {
+    return (
+        <Navigate
+            to="/login"
+            replace
+        />
+    )
+  }
+
+  const hasAccess =
+      currentUser.role === 'TEAM_LEAD' ||
+      currentUser.role === 'ADMIN'
+
+  if (!hasAccess) {
+    return (
+        <Navigate
+            to="/"
+            replace
+        />
+    )
+  }
+
+  return children
+}
+
 export default function App() {
   return (
       <Routes>
@@ -82,6 +115,15 @@ export default function App() {
               <ProtectedRoute>
                 <ProjectPage />
               </ProtectedRoute>
+            }
+        />
+
+        <Route
+            path="/projects/:projectId/analytics"
+            element={
+              <AnalyticsRoute>
+                <ProjectAnalyticsPage />
+              </AnalyticsRoute>
             }
         />
 

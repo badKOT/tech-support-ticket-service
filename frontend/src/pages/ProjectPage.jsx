@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 
 import {
   createTicket,
@@ -11,6 +12,11 @@ import UserBlock from '../components/UserBlock'
 export default function ProjectPage() {
   const { projectId } = useParams()
   const navigate = useNavigate()
+  const { currentUser } = useAuth()
+
+  const canViewAnalytics =
+      currentUser?.role === 'TEAM_LEAD' ||
+      currentUser?.role === 'ADMIN'
 
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -151,15 +157,31 @@ export default function ProjectPage() {
               </p>
             </div>
 
-            {!creating && (
-                <button
-                    type="button"
-                    className="ticket-primary-button"
-                    onClick={handleStartCreate}
-                >
-                  + Создать обращение
-                </button>
-            )}
+            <div className="project-page-actions">
+              {canViewAnalytics && (
+                  <button
+                      type="button"
+                      className="ticket-secondary-button"
+                      onClick={() =>
+                          navigate(
+                              `/projects/${projectId}/analytics`,
+                          )
+                      }
+                  >
+                    Аналитика
+                  </button>
+              )}
+
+              {!creating && (
+                  <button
+                      type="button"
+                      className="ticket-primary-button"
+                      onClick={handleStartCreate}
+                  >
+                    + Создать обращение
+                  </button>
+              )}
+            </div>
           </div>
 
           {creating && (

@@ -9,13 +9,35 @@ import {
   getCurrentUser,
   login as loginRequest,
   logout as logoutRequest,
+  setUnauthorizedHandler,
 } from '../api/api'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] =
+      useState(null)
+
+  const [loading, setLoading] =
+      useState(true)
+
+  // =========================================================
+  // GLOBAL 401 HANDLER
+  // =========================================================
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setCurrentUser(null)
+    })
+
+    return () => {
+      setUnauthorizedHandler(null)
+    }
+  }, [])
+
+  // =========================================================
+  // LOAD CURRENT USER
+  // =========================================================
 
   useEffect(() => {
     getCurrentUser()
@@ -37,6 +59,10 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
+  // =========================================================
+  // LOGIN
+  // =========================================================
+
   async function login(username, password) {
     const user = await loginRequest(
         username,
@@ -48,10 +74,26 @@ export function AuthProvider({ children }) {
     return user
   }
 
+  // =========================================================
+  // LOGOUT
+  // =========================================================
+
   async function logout() {
-    await logoutRequest()
-    setCurrentUser(null)
+    try {
+      await logoutRequest()
+    } finally {
+      /*
+       * Даже если серверная сессия уже истекла
+       * или logout вернул ошибку,
+       * локальную авторизацию очищаем.
+       */
+      setCurrentUser(null)
+    }
   }
+
+  // =========================================================
+  // PROVIDER
+  // =========================================================
 
   return (
       <AuthContext.Provider

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import {useEffect, useState} from 'react'
+import {useNavigate, useParams} from 'react-router-dom'
 
 import {
   addTicketComment,
@@ -12,7 +12,7 @@ import {
   updateTicket,
 } from '../api/api'
 
-import { useAuth } from '../auth/AuthContext'
+import {useAuth} from '../auth/AuthContext'
 import UserBlock from '../components/UserBlock'
 
 const TICKET_STATUSES = [
@@ -26,10 +26,10 @@ const TICKET_STATUSES = [
 ]
 
 export default function TicketPage() {
-  const { ticketId } = useParams()
+  const {ticketId} = useParams()
   const navigate = useNavigate()
 
-  const { currentUser } = useAuth()
+  const {currentUser} = useAuth()
 
   const [ticket, setTicket] = useState(null)
   const [comments, setComments] = useState([])
@@ -114,6 +114,22 @@ export default function TicketPage() {
           )
       )
 
+  const canRequesterReopen =
+      currentUser &&
+      ticket &&
+      currentUser.role === 'REQUESTER' &&
+      ticket.creatorId === currentUser.id &&
+      (
+          ticket.status === 'CLOSED' ||
+          ticket.status === 'RESOLVED'
+      )
+
+  const canSupportTakeTicket =
+      currentUser &&
+      ticket &&
+      currentUser.role === 'SUPPORT_AGENT' &&
+      ticket.assigneeId == null
+
   const canEdit =
       currentUser &&
       ticket &&
@@ -164,6 +180,42 @@ export default function TicketPage() {
     }
   }
 
+  async function handleReopenTicket() {
+    if (!ticket || !canRequesterReopen) {
+      return
+    }
+
+    setStatusSubmitting(true)
+    setStatusError('')
+
+    try {
+      const updatedTicket =
+          await changeTicketStatus(
+              ticketId,
+              'REOPENED',
+          )
+
+      setTicket(updatedTicket)
+    } catch (error) {
+      console.error(
+          'Failed to reopen ticket',
+          error,
+      )
+
+      if (error.status === 403) {
+        setStatusError(
+            'У вас нет прав на переоткрытие этого тикета',
+        )
+      } else {
+        setStatusError(
+            'Не удалось переоткрыть тикет',
+        )
+      }
+    } finally {
+      setStatusSubmitting(false)
+    }
+  }
+
   async function handleAssigneeChange(event) {
     const value = event.target.value
 
@@ -200,6 +252,50 @@ export default function TicketPage() {
       } else {
         setAssigneeError(
             'Не удалось изменить исполнителя',
+        )
+      }
+    } finally {
+      setAssigneeSubmitting(false)
+    }
+  }
+
+  async function handleTakeTicket() {
+    if (
+        !currentUser ||
+        !ticket ||
+        !canSupportTakeTicket
+    ) {
+      return
+    }
+
+    setAssigneeSubmitting(true)
+    setAssigneeError('')
+
+    try {
+      const updatedTicket =
+          await assignTicket(
+              ticketId,
+              currentUser.id,
+          )
+
+      setTicket(updatedTicket)
+    } catch (error) {
+      console.error(
+          'Failed to take ticket',
+          error,
+      )
+
+      if (error.status === 403) {
+        setAssigneeError(
+            'Вы не можете взять этот тикет в работу',
+        )
+      } else if (error.status === 400) {
+        setAssigneeError(
+            'Не удалось назначить тикет на вас',
+        )
+      } else {
+        setAssigneeError(
+            'Не удалось взять тикет в работу',
         )
       }
     } finally {
@@ -352,7 +448,7 @@ export default function TicketPage() {
             <h1>Tech Support</h1>
           </div>
 
-          <UserBlock />
+          <UserBlock/>
         </header>
 
         <main className="page-content">
@@ -414,11 +510,26 @@ export default function TicketPage() {
                               ))}
                             </select>
                         ) : (
-                            <span
-                                className={`ticket-status ticket-status-${ticket.status?.toLowerCase()}`}
-                            >
-                        {ticket.status}
-                      </span>
+                            <div className="ticket-status-actions">
+                              <span
+                                 className={`ticket-status ticket-status-${ticket.status?.toLowerCase()}`}
+                              >
+                                {ticket.status}
+                              </span>
+
+                              {canRequesterReopen && (
+                                  <button
+                                      type="button"
+                                      className="ticket-secondary-button"
+                                      onClick={handleReopenTicket}
+                                      disabled={statusSubmitting}
+                                  >
+                                    {statusSubmitting
+                                        ? 'Переоткрываем...'
+                                        : 'Переоткрыть'}
+                                  </button>
+                              )}
+                            </div>
                         )}
                       </div>
 
@@ -452,6 +563,25 @@ export default function TicketPage() {
                       )}
                     </div>
                   </div>
+
+                  {canSupportTakeTicket && (
+                      <div className="ticket-action-field">
+                       <span className="ticket-action-label">
+                        Исполнитель
+                       </span>
+
+                        <button
+                            type="button"
+                            className="ticket-primary-button"
+                            onClick={handleTakeTicket}
+                            disabled={assigneeSubmitting}
+                        >
+                          {assigneeSubmitting
+                              ? 'Назначаем...'
+                              : 'Взять в работу'}
+                        </button>
+                      </div>
+                  )}
 
                   {statusError && (
                       <div className="login-error ticket-action-error">
