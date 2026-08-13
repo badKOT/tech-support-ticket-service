@@ -29,30 +29,18 @@ public class TicketService {
     private final CurrentUserService currentUserService;
     private final TicketAccessService ticketAccessService;
 
-    public List<TicketResponse> getTicketsByProject(Long projectId) {
+    public List<TicketResponse> getTicketsByProject(
+        Long projectId
+    ) {
         getProjectOrThrow(projectId);
 
-        User currentUser = currentUserService.getCurrentUser();
+        currentUserService.getCurrentUser();
 
-        List<Ticket> tickets = switch (currentUser.getRole()) {
-            case ADMIN, TEAM_LEAD -> ticketRepo.findByProjectIdOrderByCreatedAtDesc(
+        return ticketRepo
+            .findByProjectIdOrderByCreatedAtDesc(
                 projectId
-            );
-
-            case REQUESTER -> ticketRepo
-                .findByProjectIdAndCreatorIdOrderByCreatedAtDesc(
-                    projectId,
-                    currentUser.getId()
-                );
-
-            case SUPPORT_AGENT -> ticketRepo
-                .findByProjectIdAndAssigneeIdOrderByCreatedAtDesc(
-                    projectId,
-                    currentUser.getId()
-                );
-        };
-
-        return tickets.stream()
+            )
+            .stream()
             .map(TicketResponse::from)
             .toList();
     }
@@ -144,33 +132,60 @@ public class TicketService {
         Long ticketId,
         TicketStatusUpdateRequest request
     ) {
-        Ticket ticket = getTicketOrThrow(ticketId);
-        User currentUser = currentUserService.getCurrentUser();
+        Ticket ticket =
+            getTicketOrThrow(ticketId);
+
+        User currentUser =
+            currentUserService.getCurrentUser();
+
+        TicketStatus oldStatus =
+            ticket.getStatus();
+
+        TicketStatus newStatus =
+            request.status();
 
         if (!ticketAccessService.canChangeStatus(
             ticket,
-            currentUser
+            currentUser,
+            newStatus
         )) {
             throw new AccessDeniedException(
-                "You cannot change status of ticket " + ticketId
+                "You cannot change status of ticket "
+                    + ticketId
             );
         }
 
-        TicketStatus oldStatus = ticket.getStatus();
-        TicketStatus newStatus = request.status();
-
         ticket.setStatus(newStatus);
 
-        if (newStatus == TicketStatus.CLOSED
-            && oldStatus != TicketStatus.CLOSED) {
-            ticket.setClosedAt(Instant.now());
+        if (
+            newStatus == TicketStatus.CLOSED
+                && oldStatus != TicketStatus.CLOSED
+        ) {
+            ticket.setClosedAt(
+                Instant.now()
+            );
         }
 
-        if (newStatus != TicketStatus.CLOSED) {
+        if (
+            newStatus != TicketStatus.CLOSED
+        ) {
             ticket.setClosedAt(null);
         }
 
         return TicketResponse.from(ticket);
+    }
+
+    public List<UserResponse> getAvailableAssignees() {
+        return userRepo
+            .findAllByEnabledTrueAndRoleIn(
+                List.of(
+                    UserRole.SUPPORT_AGENT,
+                    UserRole.TEAM_LEAD
+                )
+            )
+            .stream()
+            .map(UserResponse::from)
+            .toList();
     }
 
     @Transactional
@@ -178,25 +193,55 @@ public class TicketService {
         Long ticketId,
         TicketAssigneeUpdateRequest request
     ) {
-        Ticket ticket = getTicketOrThrow(ticketId);
-        User currentUser = currentUserService.getCurrentUser();
+        Ticket ticket =
+            getTicketOrThrow(ticketId);
 
-        if (!ticketAccessService.canManageAssignment(currentUser)) {
-            throw new AccessDeniedException(
-                "You cannot assign ticket " + ticketId
-            );
-        }
-
+        User currentUser =
+            currentUserService.getCurrentUser();
         if (request.assigneeId() == null) {
+
+            if (!ticketAccessService
+                .canManageAssignment(
+                    currentUser,
+                    null
+                )) {
+
+                throw new AccessDeniedException(
+                    "You cannot remove ticket assignment "
+                        + ticketId
+                );
+            }
+
             ticket.setAssignee(null);
+
             return TicketResponse.from(ticket);
         }
 
-        User assignee = getUserOrThrow(request.assigneeId());
+        User assignee =
+            getUserOrThrow(
+                request.assigneeId()
+            );
 
-        if (assignee.getRole() != UserRole.SUPPORT_AGENT
-            && assignee.getRole() != UserRole.TEAM_LEAD) {
+        if (!ticketAccessService
+            .canManageAssignment(
+                currentUser,
+                assignee
+            )) {
 
+            throw new AccessDeniedException(
+                "You cannot assign ticket "
+                    + ticketId
+                    + " to user "
+                    + assignee.getId()
+            );
+        }
+
+        if (
+            assignee.getRole()
+                != UserRole.SUPPORT_AGENT
+                && assignee.getRole()
+                != UserRole.TEAM_LEAD
+        ) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "Ticket can only be assigned to a support agent "
@@ -204,6 +249,9 @@ public class TicketService {
             );
         }
 
+        /*
+         * Отключённого пользователя назначать нельзя.
+         */
         if (!assignee.isEnabled()) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,

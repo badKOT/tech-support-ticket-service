@@ -1,5 +1,6 @@
 package self.project.web.ticket.service.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/users/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable Long id) {
         log.info("[DELETE /admin/users/{}] Got request!", id);
         adminService.deleteUser(id);

@@ -1,10 +1,16 @@
 Приложение для заведения тикетов.
 
 Для запуска:
-```plain
-docker compose up -d
-./gradlew bootRun
-```
+`docker compose up -d`
+- Запуск: `.\dev.ps1` - скрипт запускает backend и frontend и открывает приложение в браузере.
+
+- Остановка: `.\devStop.ps1`
+
+- Перезапуск: `.\devRestart.ps1`
+
+Запуск вручную:
+Backend: `.\gradlew.bat bootRun`
+Frontend: `cd frontend`, `npm install`, `npm run dev`
 
 Приложение будет доступно по `localhost:8080`. Swagger по `localhost:8080/swagger-ui/index.html`.
 

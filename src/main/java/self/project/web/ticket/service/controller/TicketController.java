@@ -69,15 +69,26 @@ public class TicketController {
         return ticketService.changeStatus(ticketId, request);
     }
 
-    @PatchMapping("/tickets/{ticketId}/assignee")
+    @GetMapping("/ticket-assignees")
     @PreAuthorize("hasAnyRole('TEAM_LEAD', 'ADMIN')")
+    public List<UserResponse> getAvailableAssignees() {
+        log.info("[GET /ticket-assignees] Got request");
+
+        return ticketService.getAvailableAssignees();
+    }
+
+    @PatchMapping("/tickets/{ticketId}/assignee")
+    @PreAuthorize("hasAnyRole('SUPPORT_AGENT', 'TEAM_LEAD', 'ADMIN')")
     public TicketResponse assignTicket(
         @PathVariable Long ticketId,
-        @RequestBody TicketAssigneeUpdateRequest request
-    ) {
-        log.info("[PATCH /tickets/{}/assignee] Got request, body = {}", ticketId, request);
+        @RequestBody TicketAssigneeUpdateRequest request) {
+        log.info("[PATCH /tickets/{}/assignee] Got request, body = {}",
+            ticketId,
+            request);
 
-        return ticketService.assignTicket(ticketId, request);
+        return ticketService.assignTicket(
+            ticketId,
+            request);
     }
 
     @DeleteMapping("/tickets/{ticketId}")

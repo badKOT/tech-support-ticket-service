@@ -121,7 +121,7 @@ public class AdminService {
     @Transactional
     public void deleteUser(Long id) {
         User user = getUser(id);
-        userRepo.delete(user);
+        user.setEnabled(false);
     }
 
     public List<ProjectResponse> getProjects() {

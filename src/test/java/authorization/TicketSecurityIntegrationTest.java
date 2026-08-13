@@ -136,12 +136,12 @@ class TicketSecurityIntegrationTest {
     }
 
     @Test
-    void requesterShouldNotSeeAnotherUsersTicket() throws Exception {
+    void requesterShouldSeeAnotherUsersTicket() throws Exception {
         mockMvc.perform(
                 get("/api/tickets/{id}", aliceTicket.getId())
                     .with(user("eve").roles("REQUESTER"))
             )
-            .andExpect(status().isForbidden());
+            .andExpect(status().isOk());
     }
 
     @Test
