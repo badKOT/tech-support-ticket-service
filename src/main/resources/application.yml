@@ -20,6 +20,10 @@ spring:
   security:
     password:
       pepper: ${PASSWORD_PEPPER:test-pepper}
+      jwt:
+        issuer: tech-support-ticket-service
+        secret: ${JWT_SECRET}
+        access-token-ttl: PT15M
 
 management:
   endpoints:

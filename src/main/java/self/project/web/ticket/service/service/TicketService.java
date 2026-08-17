@@ -29,20 +29,13 @@ public class TicketService {
     private final CurrentUserService currentUserService;
     private final TicketAccessService ticketAccessService;
 
-    public List<TicketResponse> getTicketsByProject(
-        Long projectId
-    ) {
+    public List<TicketResponse> getTicketsByProject(Long projectId) {
         getProjectOrThrow(projectId);
 
         currentUserService.getCurrentUser();
 
-        return ticketRepo
-            .findByProjectIdOrderByCreatedAtDesc(
-                projectId
-            )
-            .stream()
-            .map(TicketResponse::from)
-            .toList();
+        return ticketRepo.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
+            .map(TicketResponse::from).toList();
     }
 
     public TicketResponse getTicket(Long ticketId) {
@@ -55,19 +48,11 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse createTicket(
-        Long projectId,
-        TicketRequest request
-    ) {
+    public TicketResponse createTicket(Long projectId, TicketRequest request) {
         Project project = getProjectOrThrow(projectId);
         User creator = currentUserService.getCurrentUser();
 
-        Ticket ticket = new Ticket(
-            request.title().trim(),
-            request.description(),
-            project,
-            creator
-        );
+        Ticket ticket = new Ticket(request.title().trim(), request.description(), project, creator);
 
         Ticket savedTicket = ticketRepo.save(ticket);
 
@@ -75,27 +60,20 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse updateTicket(
-        Long ticketId,
-        TicketUpdateRequest request
-    ) {
+    public TicketResponse updateTicket(Long ticketId, TicketUpdateRequest request) {
         Ticket ticket = getTicketOrThrow(ticketId);
         User currentUser = currentUserService.getCurrentUser();
 
         if (!ticketAccessService.canEditContent(ticket, currentUser)) {
-            throw new AccessDeniedException(
-                "You cannot edit ticket " + ticketId
-            );
+            throw new AccessDeniedException("You cannot edit ticket " + ticketId);
         }
 
         if (request.title() != null) {
             String title = request.title().trim();
 
             if (title.isBlank()) {
-                throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Ticket title must not be blank"
-                );
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ticket title must not be blank");
             }
 
             ticket.setTitle(title);
@@ -105,21 +83,14 @@ public class TicketService {
             ticket.setDescription(request.description());
         }
 
-        if (request.projectId() != null
-            && !Objects.equals(
-            request.projectId(),
-            ticket.getProject().getId()
-        )) {
+        if (request.projectId() != null && !Objects.equals(request.projectId(),
+            ticket.getProject().getId())) {
 
             if (!ticketAccessService.canMoveTicket(currentUser)) {
-                throw new AccessDeniedException(
-                    "You cannot move a ticket to another project"
-                );
+                throw new AccessDeniedException("You cannot move a ticket to another project");
             }
 
-            Project project = getProjectOrThrow(
-                request.projectId()
-            );
+            Project project = getProjectOrThrow(request.projectId());
 
             ticket.setProject(project);
         }
@@ -128,47 +99,26 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse changeStatus(
-        Long ticketId,
-        TicketStatusUpdateRequest request
-    ) {
-        Ticket ticket =
-            getTicketOrThrow(ticketId);
+    public TicketResponse changeStatus(Long ticketId, TicketStatusUpdateRequest request) {
+        Ticket ticket = getTicketOrThrow(ticketId);
 
-        User currentUser =
-            currentUserService.getCurrentUser();
+        User currentUser = currentUserService.getCurrentUser();
 
-        TicketStatus oldStatus =
-            ticket.getStatus();
+        TicketStatus oldStatus = ticket.getStatus();
 
-        TicketStatus newStatus =
-            request.status();
+        TicketStatus newStatus = request.status();
 
-        if (!ticketAccessService.canChangeStatus(
-            ticket,
-            currentUser,
-            newStatus
-        )) {
-            throw new AccessDeniedException(
-                "You cannot change status of ticket "
-                    + ticketId
-            );
+        if (!ticketAccessService.canChangeStatus(ticket, currentUser, newStatus)) {
+            throw new AccessDeniedException("You cannot change status of ticket " + ticketId);
         }
 
         ticket.setStatus(newStatus);
 
-        if (
-            newStatus == TicketStatus.CLOSED
-                && oldStatus != TicketStatus.CLOSED
-        ) {
-            ticket.setClosedAt(
-                Instant.now()
-            );
+        if (newStatus == TicketStatus.CLOSED && oldStatus != TicketStatus.CLOSED) {
+            ticket.setClosedAt(Instant.now());
         }
 
-        if (
-            newStatus != TicketStatus.CLOSED
-        ) {
+        if (newStatus != TicketStatus.CLOSED) {
             ticket.setClosedAt(null);
         }
 
@@ -176,40 +126,21 @@ public class TicketService {
     }
 
     public List<UserResponse> getAvailableAssignees() {
-        return userRepo
-            .findAllByEnabledTrueAndRoleIn(
-                List.of(
-                    UserRole.SUPPORT_AGENT,
-                    UserRole.TEAM_LEAD
-                )
-            )
-            .stream()
-            .map(UserResponse::from)
+        return userRepo.findAllByEnabledTrueAndRoleIn(
+                List.of(UserRole.SUPPORT_AGENT, UserRole.TEAM_LEAD)).stream().map(UserResponse::from)
             .toList();
     }
 
     @Transactional
-    public TicketResponse assignTicket(
-        Long ticketId,
-        TicketAssigneeUpdateRequest request
-    ) {
-        Ticket ticket =
-            getTicketOrThrow(ticketId);
+    public TicketResponse assignTicket(Long ticketId, TicketAssigneeUpdateRequest request) {
+        Ticket ticket = getTicketOrThrow(ticketId);
 
-        User currentUser =
-            currentUserService.getCurrentUser();
+        User currentUser = currentUserService.getCurrentUser();
         if (request.assigneeId() == null) {
 
-            if (!ticketAccessService
-                .canManageAssignment(
-                    currentUser,
-                    null
-                )) {
+            if (!ticketAccessService.canManageAssignment(currentUser, null)) {
 
-                throw new AccessDeniedException(
-                    "You cannot remove ticket assignment "
-                        + ticketId
-                );
+                throw new AccessDeniedException("You cannot remove ticket assignment " + ticketId);
             }
 
             ticket.setAssignee(null);
@@ -217,46 +148,26 @@ public class TicketService {
             return TicketResponse.from(ticket);
         }
 
-        User assignee =
-            getUserOrThrow(
-                request.assigneeId()
-            );
+        User assignee = getUserOrThrow(request.assigneeId());
 
-        if (!ticketAccessService
-            .canManageAssignment(
-                currentUser,
-                assignee
-            )) {
+        if (!ticketAccessService.canManageAssignment(currentUser, assignee)) {
 
             throw new AccessDeniedException(
-                "You cannot assign ticket "
-                    + ticketId
-                    + " to user "
-                    + assignee.getId()
-            );
+                "You cannot assign ticket " + ticketId + " to user " + assignee.getId());
         }
 
-        if (
-            assignee.getRole()
-                != UserRole.SUPPORT_AGENT
-                && assignee.getRole()
-                != UserRole.TEAM_LEAD
-        ) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Ticket can only be assigned to a support agent "
-                    + "or team lead"
-            );
+        if (assignee.getRole() != UserRole.SUPPORT_AGENT
+            && assignee.getRole() != UserRole.TEAM_LEAD) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Ticket can only be assigned to a support agent " + "or team lead");
         }
 
         /*
          * Отключённого пользователя назначать нельзя.
          */
         if (!assignee.isEnabled()) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Disabled user cannot be assigned to a ticket"
-            );
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Disabled user cannot be assigned to a ticket");
         }
 
         ticket.setAssignee(assignee);
@@ -270,9 +181,7 @@ public class TicketService {
         User currentUser = currentUserService.getCurrentUser();
 
         if (currentUser.getRole() != UserRole.ADMIN) {
-            throw new AccessDeniedException(
-                "Only administrator can delete tickets"
-            );
+            throw new AccessDeniedException("Only administrator can delete tickets");
         }
 
         ticketRepo.delete(ticket);
@@ -284,28 +193,18 @@ public class TicketService {
 
         checkCanRead(ticket, currentUser);
 
-        return commentRepo
-            .findByTicketIdOrderByCreatedAtAsc(ticketId)
-            .stream()
-            .map(CommentResponse::from)
-            .toList();
+        return commentRepo.findByTicketIdOrderByCreatedAtAsc(ticketId).stream()
+            .map(CommentResponse::from).toList();
     }
 
     @Transactional
-    public CommentResponse addComment(
-        Long ticketId,
-        CommentRequest request
-    ) {
+    public CommentResponse addComment(Long ticketId, CommentRequest request) {
         Ticket ticket = getTicketOrThrow(ticketId);
         User author = currentUserService.getCurrentUser();
 
         checkCanRead(ticket, author);
 
-        Comment comment = new Comment(
-            request.content().trim(),
-            ticket,
-            author
-        );
+        Comment comment = new Comment(request.content().trim(), ticket, author);
 
         Comment savedComment = commentRepo.save(comment);
 
@@ -318,23 +217,15 @@ public class TicketService {
         User currentUser = currentUserService.getCurrentUser();
 
         if (!ticketAccessService.canViewAnalytics(currentUser)) {
-            throw new AccessDeniedException(
-                "You cannot view project analytics"
-            );
+            throw new AccessDeniedException("You cannot view project analytics");
         }
 
-        List<Ticket> tickets =
-            ticketRepo.findByProjectIdOrderByCreatedAtDesc(
-                projectId
-            );
+        List<Ticket> tickets = ticketRepo.findByProjectIdOrderByCreatedAtDesc(projectId);
 
         ZoneId zone = ZoneId.systemDefault();
 
-        Map<String, Long> statusCounts = tickets.stream()
-            .collect(Collectors.groupingBy(
-                ticket -> ticket.getStatus().name(),
-                Collectors.counting()
-            ));
+        Map<String, Long> statusCounts = tickets.stream().collect(
+            Collectors.groupingBy(ticket -> ticket.getStatus().name(), Collectors.counting()));
 
         LocalDate today = LocalDate.now();
         List<DailyCount> dailyCounts = new ArrayList<>();
@@ -343,109 +234,48 @@ public class TicketService {
             LocalDate date = today.minusDays(daysAgo);
 
             long created = tickets.stream()
-                .filter(ticket ->
-                    ticket.getCreatedAt()
-                        .atZone(zone)
-                        .toLocalDate()
-                        .equals(date)
-                )
+                .filter(ticket -> ticket.getCreatedAt().atZone(zone).toLocalDate().equals(date))
                 .count();
 
-            long resolved = tickets.stream()
-                .filter(ticket ->
-                    ticket.getClosedAt() != null
-                        && ticket.getClosedAt()
-                        .atZone(zone)
-                        .toLocalDate()
-                        .equals(date)
-                )
-                .count();
+            long resolved = tickets.stream().filter(
+                ticket -> ticket.getClosedAt() != null && ticket.getClosedAt().atZone(zone)
+                    .toLocalDate().equals(date)).count();
 
-            dailyCounts.add(
-                new DailyCount(
-                    date.toString(),
-                    created,
-                    resolved
-                )
-            );
+            dailyCounts.add(new DailyCount(date.toString(), created, resolved));
         }
 
-        List<AssigneeResolutionTime> resolutionTimes =
-            tickets.stream()
-                .filter(ticket ->
-                    ticket.getClosedAt() != null
-                        && ticket.getAssignee() != null
-                )
-                .collect(Collectors.groupingBy(
-                    ticket -> ticket
-                        .getAssignee()
-                        .getDisplayName(),
+        List<AssigneeResolutionTime> resolutionTimes = tickets.stream()
+            .filter(ticket -> ticket.getClosedAt() != null && ticket.getAssignee() != null).collect(
+                Collectors.groupingBy(ticket -> ticket.getAssignee().getDisplayName(),
                     Collectors.averagingDouble(
-                        ticket -> Duration.between(
-                                ticket.getCreatedAt(),
-                                ticket.getClosedAt()
-                            )
-                            .toHours()
-                    )
-                ))
-                .entrySet()
-                .stream()
-                .map(entry ->
-                    new AssigneeResolutionTime(
-                        entry.getKey(),
-                        Math.round(
-                            entry.getValue() * 10.0
-                        ) / 10.0
-                    )
-                )
-                .toList();
+                        ticket -> Duration.between(ticket.getCreatedAt(), ticket.getClosedAt())
+                            .toHours()))).entrySet().stream().map(
+                entry -> new AssigneeResolutionTime(entry.getKey(),
+                    Math.round(entry.getValue() * 10.0) / 10.0)).toList();
 
-        return new ProjectAnalytics(
-            statusCounts,
-            dailyCounts,
-            resolutionTimes
-        );
+        return new ProjectAnalytics(statusCounts, dailyCounts, resolutionTimes);
     }
 
     private Ticket getTicketOrThrow(Long ticketId) {
-        return ticketRepo.findById(ticketId)
-            .orElseThrow(() ->
-                new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Ticket not found: " + ticketId
-                )
-            );
+        return ticketRepo.findById(ticketId).orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                "Ticket not found: " + ticketId));
     }
 
     private Project getProjectOrThrow(Long projectId) {
-        return projectRepo.findById(projectId)
-            .orElseThrow(() ->
-                new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Project not found: " + projectId
-                )
-            );
+        return projectRepo.findById(projectId).orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                "Project not found: " + projectId));
     }
 
     private User getUserOrThrow(Long userId) {
-        return userRepo.findById(userId)
-            .orElseThrow(() ->
-                new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "User not found: " + userId
-                )
-            );
+        return userRepo.findById(userId).orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + userId));
     }
 
-    private void checkCanRead(
-        Ticket ticket,
-        User currentUser
-    ) {
+    private void checkCanRead(Ticket ticket, User currentUser) {
         if (!ticketAccessService.canRead(ticket, currentUser)) {
-            throw new AccessDeniedException(
-                "You do not have access to ticket "
-                    + ticket.getId()
-            );
+            throw new AccessDeniedException("You do not have access to ticket " + ticket.getId());
         }
     }
 }

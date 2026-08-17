@@ -40,9 +40,7 @@ public class SecurityConfig {
     };
 
     @Bean
-    public AuthenticationManager authenticationManager(
-        DatabaseAuthenticationProvider authenticationProvider
-    ) {
+    public AuthenticationManager authenticationManager(DatabaseAuthenticationProvider authenticationProvider) {
         return new ProviderManager(authenticationProvider);
     }
 
@@ -57,110 +55,52 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SessionAuthenticationStrategy sessionAuthenticationStrategy(
-        CsrfTokenRepository csrfTokenRepository
-    ) {
-        ChangeSessionIdAuthenticationStrategy sessionIdStrategy =
-            new ChangeSessionIdAuthenticationStrategy();
+    public SessionAuthenticationStrategy sessionAuthenticationStrategy(CsrfTokenRepository csrfTokenRepository) {
+        ChangeSessionIdAuthenticationStrategy sessionIdStrategy = new ChangeSessionIdAuthenticationStrategy();
 
-        CsrfAuthenticationStrategy csrfStrategy =
-            new CsrfAuthenticationStrategy(csrfTokenRepository);
+        CsrfAuthenticationStrategy csrfStrategy = new CsrfAuthenticationStrategy(
+            csrfTokenRepository);
 
-        return new CompositeSessionAuthenticationStrategy(
-            List.of(
-                sessionIdStrategy,
-                csrfStrategy
-            )
-        );
+        return new CompositeSessionAuthenticationStrategy(List.of(sessionIdStrategy, csrfStrategy));
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(
-        HttpSecurity http,
-        SecurityContextRepository securityContextRepository,
-        CsrfTokenRepository csrfTokenRepository,
-        SessionAuthenticationStrategy sessionAuthenticationStrategy
-    ) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityContextRepository securityContextRepository, CsrfTokenRepository csrfTokenRepository, SessionAuthenticationStrategy sessionAuthenticationStrategy)
+        throws Exception {
 
-        http
-            .securityContext(context -> context
-                .securityContextRepository(
-                    securityContextRepository
-                )
-            )
+        http.securityContext(
+                context -> context.securityContextRepository(securityContextRepository))
 
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(
-                    SessionCreationPolicy.IF_REQUIRED
-                )
-                .sessionAuthenticationStrategy(
-                    sessionAuthenticationStrategy
-                )
-            )
+            .sessionManagement(
+                session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                    .sessionAuthenticationStrategy(sessionAuthenticationStrategy))
 
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(
-                    csrfTokenRepository
-                )
+            .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
 
-                .ignoringRequestMatchers(
-                    "/api/auth/login"
-                )
-            )
+                .ignoringRequestMatchers("/api/auth/login"))
 
-            .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(
-                    PUBLIC_ENDPOINTS
-                ).permitAll()
+            .authorizeHttpRequests(
+                authorize -> authorize.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 
-                .requestMatchers(
-                    "/api/admin/**"
-                ).hasRole("ADMIN")
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                .anyRequest()
-                .authenticated()
-            )
+                    .anyRequest().authenticated())
 
-            .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint(
-                    (request, response, exception) ->
-                        response.sendError(
-                            HttpServletResponse.SC_UNAUTHORIZED
-                        )
-                )
+            .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
+                    (request, response, exception) -> response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED))
 
-                .accessDeniedHandler(
-                    (request, response, exception) ->
-                        response.sendError(
-                            HttpServletResponse.SC_FORBIDDEN
-                        )
-                )
-            )
+                .accessDeniedHandler((request, response, exception) -> response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN)))
 
-            .formLogin(
-                AbstractHttpConfigurer::disable
-            )
+            .formLogin(AbstractHttpConfigurer::disable)
 
-            .httpBasic(
-                AbstractHttpConfigurer::disable
-            )
+            .httpBasic(AbstractHttpConfigurer::disable)
 
-            .logout(logout -> logout
-                .logoutUrl(
-                    "/api/auth/logout"
-                )
-                .invalidateHttpSession(true)
-                .clearAuthentication(true)
-                .deleteCookies(
-                    "JSESSIONID"
-                )
-                .logoutSuccessHandler(
-                    (request, response, authentication) ->
-                        response.setStatus(
-                            HttpServletResponse.SC_NO_CONTENT
-                        )
-                )
-            );
+            .logout(logout -> logout.logoutUrl("/api/auth/logout").invalidateHttpSession(true)
+                .clearAuthentication(true).deleteCookies("JSESSIONID").logoutSuccessHandler(
+                    (request, response, authentication) -> response.setStatus(
+                        HttpServletResponse.SC_NO_CONTENT)));
 
         return http.build();
     }

@@ -24,27 +24,15 @@ public class AdminService {
     private final PasswordService passwordService;
 
     public List<UserResponse> getUsers() {
-        return userRepo.findAll()
-            .stream()
-            .map(UserResponse::from)
-            .toList();
+        return userRepo.findAll().stream().map(UserResponse::from).toList();
     }
 
     @Transactional
-    public UserResponse createUser(
-        UserCreateRequest request
-    ) {
-        PasswordService.PasswordData passwordData =
-            passwordService.encode(request.password());
+    public UserResponse createUser(UserCreateRequest request) {
+        PasswordService.PasswordData passwordData = passwordService.encode(request.password());
 
-        User user = new User(
-            request.username(),
-            request.displayName(),
-            request.email(),
-            passwordData.passwordHash(),
-            passwordData.salt(),
-            request.role()
-        );
+        User user = new User(request.username(), request.displayName(), request.email(),
+            passwordData.passwordHash(), passwordData.salt(), request.role());
 
         user = userRepo.save(user);
 
@@ -52,25 +40,18 @@ public class AdminService {
     }
 
     @Transactional
-    public UserResponse updateUser(
-        Long id,
-        UserUpdateRequest request
-    ) {
+    public UserResponse updateUser(Long id, UserUpdateRequest request) {
         User user = getUser(id);
 
         if (request.username() != null) {
             String username = request.username().trim();
 
             if (username.isBlank()) {
-                throw new IllegalArgumentException(
-                    "Username must not be blank"
-                );
+                throw new IllegalArgumentException("Username must not be blank");
             }
 
             if (userRepo.existsByUsernameAndIdNot(username, id)) {
-                throw new IllegalArgumentException(
-                    "Username is already occupied: " + username
-                );
+                throw new IllegalArgumentException("Username is already occupied: " + username);
             }
 
             user.setUsername(username);
@@ -80,9 +61,7 @@ public class AdminService {
             String displayName = request.displayName().trim();
 
             if (displayName.isBlank()) {
-                throw new IllegalArgumentException(
-                    "Display name must not be blank"
-                );
+                throw new IllegalArgumentException("Display name must not be blank");
             }
 
             user.setDisplayName(displayName);
@@ -92,19 +71,13 @@ public class AdminService {
             user.setEmail(request.email());
         }
 
-        if (request.password() != null
-            && !request.password().isBlank()) {
+        if (request.password() != null && !request.password().isBlank()) {
 
-            PasswordService.PasswordData passwordData =
-                passwordService.encode(request.password());
+            PasswordService.PasswordData passwordData = passwordService.encode(request.password());
 
-            user.setPasswordHash(
-                passwordData.passwordHash()
-            );
+            user.setPasswordHash(passwordData.passwordHash());
 
-            user.setSalt(
-                passwordData.salt()
-            );
+            user.setSalt(passwordData.salt());
         }
 
         if (request.role() != null) {
@@ -125,21 +98,12 @@ public class AdminService {
     }
 
     public List<ProjectResponse> getProjects() {
-        return projectRepo.findAll()
-            .stream()
-            .map(ProjectResponse::from)
-            .toList();
+        return projectRepo.findAll().stream().map(ProjectResponse::from).toList();
     }
 
     @Transactional
-    public ProjectResponse createProject(
-        ProjectCreateRequest request
-    ) {
-        Project project = new Project(
-            request.name(),
-            request.key(),
-            request.description()
-        );
+    public ProjectResponse createProject(ProjectCreateRequest request) {
+        Project project = new Project(request.name(), request.key(), request.description());
 
         project = projectRepo.save(project);
 
@@ -147,33 +111,22 @@ public class AdminService {
     }
 
     @Transactional
-    public ProjectResponse updateProject(
-        Long id,
-        ProjectUpdateRequest request
-    ) {
+    public ProjectResponse updateProject(Long id, ProjectUpdateRequest request) {
         Project project = projectRepo.findById(id)
-            .orElseThrow(() ->
-                new RuntimeException(
-                    "Project not found: " + id
-                )
-            );
+            .orElseThrow(() -> new RuntimeException("Project not found: " + id));
 
-        if (request.name() != null
-            && !request.name().isBlank()) {
+        if (request.name() != null && !request.name().isBlank()) {
 
             project.setName(request.name());
         }
 
-        if (request.key() != null
-            && !request.key().isBlank()) {
+        if (request.key() != null && !request.key().isBlank()) {
 
             project.setKey(request.key());
         }
 
         if (request.description() != null) {
-            project.setDescription(
-                request.description()
-            );
+            project.setDescription(request.description());
         }
 
         project = projectRepo.save(project);
@@ -184,9 +137,7 @@ public class AdminService {
     @Transactional
     public void deleteProject(Long id) {
         if (!projectRepo.existsById(id)) {
-            throw new RuntimeException(
-                "Project not found: " + id
-            );
+            throw new RuntimeException("Project not found: " + id);
         }
 
         projectRepo.deleteById(id);
@@ -194,11 +145,7 @@ public class AdminService {
 
     private User getUser(Long id) {
         return userRepo.findById(id)
-            .orElseThrow(() ->
-                new RuntimeException(
-                    "User not found: " + id
-                )
-            );
+            .orElseThrow(() -> new RuntimeException("User not found: " + id));
     }
 }
 

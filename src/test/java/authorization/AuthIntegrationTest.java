@@ -26,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthIntegrationTest {
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -39,26 +40,17 @@ class AuthIntegrationTest {
     void setUp() {
         userRepository.deleteAll();
 
-        PasswordService.PasswordData passwordData =
-            passwordService.encode("diana123");
+        PasswordService.PasswordData passwordData = passwordService.encode("diana123");
 
-        User diana = new User(
-            "diana",
-            "Diana Prince",
-            "diana@example.com",
-            passwordData.passwordHash(),
-            passwordData.salt(),
-            UserRole.ADMIN
-        );
+        User diana = new User("diana", "Diana Prince", "diana@example.com",
+            passwordData.passwordHash(), passwordData.salt(), UserRole.ADMIN);
 
         userRepository.saveAndFlush(diana);
     }
 
     @Test
     void shouldReturn401WhenUserIsNotAuthenticated() throws Exception {
-        mockMvc.perform(
-            get("/api/auth/me")
-        ).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -70,13 +62,8 @@ class AuthIntegrationTest {
             }
             """;
 
-        mockMvc.perform(
-                post("/api/auth/login")
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isOk())
+        mockMvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(body)).andExpect(status().isOk())
             .andExpect(jsonPath("$.username").value("diana"))
             .andExpect(jsonPath("$.role").value("ADMIN"))
             .andExpect(jsonPath("$.enabled").value(true));
@@ -91,13 +78,8 @@ class AuthIntegrationTest {
             }
             """;
 
-        mockMvc.perform(
-                post("/api/auth/login")
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+            .content(body)).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -110,30 +92,16 @@ class AuthIntegrationTest {
             """;
 
         var loginResult = mockMvc.perform(
-                post("/api/auth/login")
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isOk())
-            .andReturn();
+            post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(body)).andExpect(status().isOk()).andReturn();
 
-        HttpSession session =
-            loginResult
-                .getRequest()
-                .getSession(false);
+        HttpSession session = loginResult.getRequest().getSession(false);
 
         assertThat(session).isNotNull();
 
         mockMvc.perform(
-                get("/api/auth/me")
-                    .session(
-                        (org.springframework.mock.web.MockHttpSession)
-                            session
-                    )
-            )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.username").value("diana"))
+                get("/api/auth/me").session((org.springframework.mock.web.MockHttpSession) session))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.username").value("diana"))
             .andExpect(jsonPath("$.role").value("ADMIN"));
     }
 }

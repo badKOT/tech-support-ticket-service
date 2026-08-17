@@ -9,37 +9,24 @@ import self.project.web.ticket.service.entity.User;
 public class TicketAccessService {
 
     /**
-     * Все авторизованные пользователи могут просматривать
-     * любые тикеты.
+     * Все авторизованные пользователи могут просматривать любые тикеты.
      */
-    public boolean canRead(
-        Ticket ticket,
-        User currentUser
-    ) {
+    public boolean canRead(Ticket ticket, User currentUser) {
         return currentUser != null;
     }
 
     /**
      * Изменение title / description.
-     *
-     * ADMIN / TEAM_LEAD — любой тикет.
-     * REQUESTER — только свой тикет в статусе OPEN.
-     * SUPPORT_AGENT — нельзя.
+     * <p>
+     * ADMIN / TEAM_LEAD — любой тикет. REQUESTER — только свой тикет в статусе OPEN. SUPPORT_AGENT
+     * — нельзя.
      */
-    public boolean canEditContent(
-        Ticket ticket,
-        User currentUser
-    ) {
+    public boolean canEditContent(Ticket ticket, User currentUser) {
         return switch (currentUser.getRole()) {
             case ADMIN, TEAM_LEAD -> true;
 
-            case REQUESTER ->
-                isSameUser(
-                    ticket.getCreator(),
-                    currentUser
-                )
-                    && ticket.getStatus()
-                    == TicketStatus.OPEN;
+            case REQUESTER -> isSameUser(ticket.getCreator(), currentUser)
+                && ticket.getStatus() == TicketStatus.OPEN;
 
             case SUPPORT_AGENT -> false;
         };
@@ -47,60 +34,37 @@ public class TicketAccessService {
 
     /**
      * Изменение статуса.
-     *
+     * <p>
      * ADMIN / TEAM_LEAD — любой переход.
-     *
+     * <p>
      * SUPPORT_AGENT — только если тикет назначен на него.
-     *
-     * REQUESTER — только собственный тикет:
-     * CLOSED / RESOLVED -> REOPENED.
+     * <p>
+     * REQUESTER — только собственный тикет: CLOSED / RESOLVED -> REOPENED.
      */
-    public boolean canChangeStatus(
-        Ticket ticket,
-        User currentUser,
-        TicketStatus targetStatus
-    ) {
+    public boolean canChangeStatus(Ticket ticket, User currentUser, TicketStatus targetStatus) {
         return switch (currentUser.getRole()) {
             case ADMIN, TEAM_LEAD -> true;
 
-            case SUPPORT_AGENT ->
-                isSameUser(
-                    ticket.getAssignee(),
-                    currentUser
-                );
+            case SUPPORT_AGENT -> isSameUser(ticket.getAssignee(), currentUser);
 
-            case REQUESTER ->
-                canRequesterReopen(
-                    ticket,
-                    currentUser,
-                    targetStatus
-                );
+            case REQUESTER -> canRequesterReopen(ticket, currentUser, targetStatus);
         };
     }
 
     /**
      * Назначение исполнителя.
-     *
-     * ADMIN / TEAM_LEAD могут назначать исполнителей
-     * и снимать назначение.
-     *
+     * <p>
+     * ADMIN / TEAM_LEAD могут назначать исполнителей и снимать назначение.
+     * <p>
      * SUPPORT_AGENT может только назначить самого себя.
-     *
+     * <p>
      * REQUESTER назначать исполнителей не может.
      */
-    public boolean canManageAssignment(
-        User currentUser,
-        User newAssignee
-    ) {
+    public boolean canManageAssignment(User currentUser, User newAssignee) {
         return switch (currentUser.getRole()) {
             case ADMIN, TEAM_LEAD -> true;
 
-            case SUPPORT_AGENT ->
-                newAssignee != null
-                    && isSameUser(
-                    currentUser,
-                    newAssignee
-                );
+            case SUPPORT_AGENT -> newAssignee != null && isSameUser(currentUser, newAssignee);
 
             case REQUESTER -> false;
         };
@@ -109,58 +73,35 @@ public class TicketAccessService {
     /**
      * Перенос тикета между проектами.
      */
-    public boolean canMoveTicket(
-        User currentUser
-    ) {
+    public boolean canMoveTicket(User currentUser) {
         return switch (currentUser.getRole()) {
             case ADMIN, TEAM_LEAD -> true;
 
-            case REQUESTER,
-                 SUPPORT_AGENT -> false;
+            case REQUESTER, SUPPORT_AGENT -> false;
         };
     }
 
-    public boolean canViewAnalytics(
-        User currentUser
-    ) {
+    public boolean canViewAnalytics(User currentUser) {
         return switch (currentUser.getRole()) {
             case ADMIN, TEAM_LEAD -> true;
 
-            case REQUESTER,
-                 SUPPORT_AGENT -> false;
+            case REQUESTER, SUPPORT_AGENT -> false;
         };
     }
 
-    private boolean canRequesterReopen(
-        Ticket ticket,
-        User currentUser,
-        TicketStatus targetStatus
-    ) {
-        if (!isSameUser(
-            ticket.getCreator(),
-            currentUser
-        )) {
+    private boolean canRequesterReopen(Ticket ticket, User currentUser, TicketStatus targetStatus) {
+        if (!isSameUser(ticket.getCreator(), currentUser)) {
             return false;
         }
 
-        boolean currentStatusAllowsReopen =
-            ticket.getStatus() == TicketStatus.CLOSED
-                || ticket.getStatus()
-                == TicketStatus.RESOLVED;
+        boolean currentStatusAllowsReopen = ticket.getStatus() == TicketStatus.CLOSED
+            || ticket.getStatus() == TicketStatus.RESOLVED;
 
-        return currentStatusAllowsReopen
-            && targetStatus
-            == TicketStatus.REOPENED;
+        return currentStatusAllowsReopen && targetStatus == TicketStatus.REOPENED;
     }
 
-    private boolean isSameUser(
-        User first,
-        User second
-    ) {
-        return first != null
-            && second != null
-            && first.getId() != null
-            && first.getId()
+    private boolean isSameUser(User first, User second) {
+        return first != null && second != null && first.getId() != null && first.getId()
             .equals(second.getId());
     }
 }
