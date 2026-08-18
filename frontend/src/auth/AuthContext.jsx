@@ -6,20 +6,31 @@ import {
 } from 'react'
 
 import {
+  clearTokens,
   getCurrentUser,
+  hasAccessToken,
+  hasRefreshToken,
   login as loginRequest,
   logout as logoutRequest,
+  setTokens,
   setUnauthorizedHandler,
 } from '../api/api'
 
-const AuthContext = createContext(null)
+const AuthContext =
+    createContext(null)
 
-export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] =
-      useState(null)
+export function AuthProvider({
+  children,
+}) {
+  const [
+    currentUser,
+    setCurrentUser,
+  ] = useState(null)
 
-  const [loading, setLoading] =
-      useState(true)
+  const [
+    loading,
+    setLoading,
+  ] = useState(true)
 
   // =========================================================
   // GLOBAL 401 HANDLER
@@ -27,6 +38,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      clearTokens()
       setCurrentUser(null)
     })
 
@@ -40,19 +52,39 @@ export function AuthProvider({ children }) {
   // =========================================================
 
   useEffect(() => {
+    /*
+     * Если нет вообще никаких токенов,
+     * даже не вызываем /me.
+     */
+    if (
+        !hasAccessToken() &&
+        !hasRefreshToken()
+    ) {
+      setCurrentUser(null)
+      setLoading(false)
+
+      return
+    }
+
+    /*
+     * Если access token истёк,
+     * request() сам сделает refresh,
+     * повторит /me и вернёт пользователя.
+     */
     getCurrentUser()
     .then((user) => {
       setCurrentUser(user)
     })
     .catch((error) => {
-      if (error.status === 401) {
-        setCurrentUser(null)
-      } else {
+      if (error.status !== 401) {
         console.error(
             'Failed to load current user',
             error,
         )
       }
+
+      clearTokens()
+      setCurrentUser(null)
     })
     .finally(() => {
       setLoading(false)
@@ -63,15 +95,35 @@ export function AuthProvider({ children }) {
   // LOGIN
   // =========================================================
 
-  async function login(username, password) {
-    const user = await loginRequest(
-        username,
-        password,
+  async function login(
+      username,
+      password,
+  ) {
+    const response =
+        await loginRequest(
+            username,
+            password,
+        )
+
+    if (
+        !response?.accessToken ||
+        !response?.refreshToken
+    ) {
+      throw new Error(
+          'Login response does not contain tokens',
+      )
+    }
+
+    setTokens(
+        response.accessToken,
+        response.refreshToken,
     )
 
-    setCurrentUser(user)
+    setCurrentUser(
+        response.user,
+    )
 
-    return user
+    return response.user
   }
 
   // =========================================================
@@ -81,12 +133,18 @@ export function AuthProvider({ children }) {
   async function logout() {
     try {
       await logoutRequest()
+    } catch (error) {
+      console.error(
+          'Logout request failed',
+          error,
+      )
     } finally {
       /*
-       * Даже если серверная сессия уже истекла
-       * или logout вернул ошибку,
-       * локальную авторизацию очищаем.
+       * Даже если backend недоступен,
+       * локальную авторизацию всё равно удаляем.
        */
+      clearTokens()
+
       setCurrentUser(null)
     }
   }
@@ -110,7 +168,8 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context =
+      useContext(AuthContext)
 
   if (!context) {
     throw new Error(
