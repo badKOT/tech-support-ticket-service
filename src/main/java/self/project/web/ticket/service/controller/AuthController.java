@@ -2,6 +2,7 @@ package self.project.web.ticket.service.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
 import self.project.web.ticket.service.dto.LoginRequest;
 import self.project.web.ticket.service.dto.LoginResponse;
 import self.project.web.ticket.service.dto.RefreshTokenRequest;
@@ -43,7 +45,6 @@ public class AuthController {
         User user = findUserEntity(authentication.getName());
 
         String accessToken = jwtService.createAccessToken(user);
-
         String refreshToken = refreshTokenService.create(user).token();
 
         return new LoginResponse(accessToken, refreshToken, "Bearer", UserResponse.from(user));
@@ -51,15 +52,9 @@ public class AuthController {
 
     @GetMapping("/me")
     public UserResponse getCurrentUser(Authentication authentication) {
-        return UserResponse.from(findUserEntity(authentication.getName()));
-    }
+        User user = findUserEntity(authentication.getName());
 
-    @PostMapping("/logout")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(@RequestBody(required = false) RefreshTokenRequest request) {
-        if (request != null) {
-            refreshTokenService.revoke(request.refreshToken());
-        }
+        return UserResponse.from(user);
     }
 
     @PostMapping("/refresh")
@@ -70,6 +65,14 @@ public class AuthController {
         String accessToken = jwtService.createAccessToken(rotated.user());
 
         return new TokenRefreshResponse(accessToken, rotated.refreshToken(), "Bearer");
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@RequestBody(required = false) RefreshTokenRequest request) {
+        if (request != null) {
+            refreshTokenService.revoke(request.refreshToken());
+        }
     }
 
     private User findUserEntity(String username) {

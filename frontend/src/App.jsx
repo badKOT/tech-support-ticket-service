@@ -12,6 +12,7 @@ import LoginPage from './pages/LoginPage'
 import ProjectPage from './pages/ProjectPage'
 import TicketPage from './pages/TicketPage'
 import ProjectAnalyticsPage from './pages/ProjectAnalyticsPage'
+import OidcCallbackPage from './pages/OidcCallbackPage'
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth()
@@ -98,6 +99,11 @@ export default function App() {
         <Route
             path="/login"
             element={<LoginPage />}
+        />
+
+        <Route
+            path="/oidc/callback"
+            element={<OidcCallbackPage />}
         />
 
         <Route
