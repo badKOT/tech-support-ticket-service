@@ -20,13 +20,9 @@ public class CurrentUserService {
     public User getCurrentUser() {
         Authentication authentication = getAuthentication();
 
-        return userRepository.findByUsername(authentication.getName())
-            .orElseThrow(() ->
-                new UsernameNotFoundException(
-                    "Authenticated user not found: "
-                        + authentication.getName()
-                )
-            );
+        return userRepository.findByUsername(authentication.getName()).orElseThrow(
+            () -> new UsernameNotFoundException(
+                "Authenticated user not found: " + authentication.getName()));
     }
 
     public Long getCurrentUserId() {
@@ -38,17 +34,12 @@ public class CurrentUserService {
     }
 
     private Authentication getAuthentication() {
-        Authentication authentication =
-            SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null
-            || !authentication.isAuthenticated()
-            || authentication
-            instanceof AnonymousAuthenticationToken) {
+        if (authentication == null || !authentication.isAuthenticated()
+            || authentication instanceof AnonymousAuthenticationToken) {
 
-            throw new IllegalStateException(
-                "User is not authenticated"
-            );
+            throw new IllegalStateException("User is not authenticated");
         }
 
         return authentication;

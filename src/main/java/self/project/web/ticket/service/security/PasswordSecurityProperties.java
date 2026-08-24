@@ -8,9 +8,7 @@ public class PasswordSecurityProperties {
 
     private final String pepper;
 
-    public PasswordSecurityProperties(
-        @Value("${security.password.pepper:test-pepper}") String pepper
-    ) {
+    public PasswordSecurityProperties(@Value("${security.password.pepper:test-pepper}") String pepper) {
         this.pepper = pepper;
     }
 

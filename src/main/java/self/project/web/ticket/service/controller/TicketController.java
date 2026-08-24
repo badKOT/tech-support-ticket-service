@@ -21,18 +21,14 @@ public class TicketController {
     private final TicketService ticketService;
 
     @GetMapping("/projects/{projectId}/tickets")
-    public List<TicketResponse> getTickets(
-        @PathVariable Long projectId
-    ) {
+    public List<TicketResponse> getTickets(@PathVariable Long projectId) {
         log.info("[GET /projects/{}/tickets] Got request", projectId);
 
         return ticketService.getTicketsByProject(projectId);
     }
 
     @GetMapping("/tickets/{ticketId}")
-    public TicketResponse getTicket(
-        @PathVariable Long ticketId
-    ) {
+    public TicketResponse getTicket(@PathVariable Long ticketId) {
         log.info("[GET /tickets/{}] Got request", ticketId);
 
         return ticketService.getTicket(ticketId);
@@ -40,30 +36,21 @@ public class TicketController {
 
     @PostMapping("/projects/{projectId}/tickets")
     @ResponseStatus(HttpStatus.CREATED)
-    public TicketResponse createTicket(
-        @PathVariable Long projectId,
-        @Valid @RequestBody TicketRequest request
-    ) {
+    public TicketResponse createTicket(@PathVariable Long projectId, @Valid @RequestBody TicketRequest request) {
         log.info("[POST /projects/{}/tickets] Got request, body = {}", projectId, request);
 
         return ticketService.createTicket(projectId, request);
     }
 
     @PutMapping("/tickets/{ticketId}")
-    public TicketResponse updateTicket(
-        @PathVariable Long ticketId,
-        @Valid @RequestBody TicketUpdateRequest request
-    ) {
+    public TicketResponse updateTicket(@PathVariable Long ticketId, @Valid @RequestBody TicketUpdateRequest request) {
         log.info("[PUT /tickets/{}] Got request, body = {}", ticketId, request);
 
         return ticketService.updateTicket(ticketId, request);
     }
 
     @PatchMapping("/tickets/{ticketId}/status")
-    public TicketResponse changeStatus(
-        @PathVariable Long ticketId,
-        @Valid @RequestBody TicketStatusUpdateRequest request
-    ) {
+    public TicketResponse changeStatus(@PathVariable Long ticketId, @Valid @RequestBody TicketStatusUpdateRequest request) {
         log.info("[PATCH /tickets/{}/status] Got request, body = {}", ticketId, request);
 
         return ticketService.changeStatus(ticketId, request);
@@ -79,33 +66,23 @@ public class TicketController {
 
     @PatchMapping("/tickets/{ticketId}/assignee")
     @PreAuthorize("hasAnyRole('SUPPORT_AGENT', 'TEAM_LEAD', 'ADMIN')")
-    public TicketResponse assignTicket(
-        @PathVariable Long ticketId,
-        @RequestBody TicketAssigneeUpdateRequest request) {
-        log.info("[PATCH /tickets/{}/assignee] Got request, body = {}",
-            ticketId,
-            request);
+    public TicketResponse assignTicket(@PathVariable Long ticketId, @RequestBody TicketAssigneeUpdateRequest request) {
+        log.info("[PATCH /tickets/{}/assignee] Got request, body = {}", ticketId, request);
 
-        return ticketService.assignTicket(
-            ticketId,
-            request);
+        return ticketService.assignTicket(ticketId, request);
     }
 
     @DeleteMapping("/tickets/{ticketId}")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteTicket(
-        @PathVariable Long ticketId
-    ) {
+    public void deleteTicket(@PathVariable Long ticketId) {
         log.info("[DELETE /tickets/{}] Got request", ticketId);
 
         ticketService.deleteTicket(ticketId);
     }
 
     @GetMapping("/tickets/{ticketId}/comments")
-    public List<CommentResponse> getComments(
-        @PathVariable Long ticketId
-    ) {
+    public List<CommentResponse> getComments(@PathVariable Long ticketId) {
         log.info("[GET /tickets/{}/comments] Got request", ticketId);
 
         return ticketService.getComments(ticketId);
@@ -113,10 +90,7 @@ public class TicketController {
 
     @PostMapping("/tickets/{ticketId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
-    public CommentResponse addComment(
-        @PathVariable Long ticketId,
-        @Valid @RequestBody CommentRequest request
-    ) {
+    public CommentResponse addComment(@PathVariable Long ticketId, @Valid @RequestBody CommentRequest request) {
         log.info("[POST /tickets/{}/comments] Got request, body = {}", ticketId, request);
 
         return ticketService.addComment(ticketId, request);
@@ -124,9 +98,7 @@ public class TicketController {
 
     @GetMapping("/projects/{projectId}/analytics")
     @PreAuthorize("hasAnyRole('TEAM_LEAD', 'ADMIN')")
-    public ProjectAnalytics getProjectAnalytics(
-        @PathVariable Long projectId
-    ) {
+    public ProjectAnalytics getProjectAnalytics(@PathVariable Long projectId) {
         log.info("[GET /projects/{}/analytics] Got request", projectId);
 
         return ticketService.getProjectAnalytics(projectId);

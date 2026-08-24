@@ -1,42 +1,191 @@
 let unauthorizedHandler = null
 
-export function setUnauthorizedHandler(handler) {
+const ACCESS_TOKEN_KEY = 'tech-support-access-token'
+
+const REFRESH_TOKEN_KEY = 'tech-support-refresh-token'
+
+let refreshPromise = null
+
+// =========================================================
+// TOKENS
+// =========================================================
+
+export function getAccessToken() {
+  return localStorage.getItem(ACCESS_TOKEN_KEY,)
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_TOKEN_KEY,)
+}
+
+export function setTokens(accessToken, refreshToken,) {
+  if (accessToken) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken,)
+  }
+
+  if (refreshToken) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken,)
+  }
+}
+
+export function clearTokens() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY,)
+
+  localStorage.removeItem(REFRESH_TOKEN_KEY,)
+}
+
+export function hasAccessToken() {
+  return Boolean(getAccessToken())
+}
+
+export function hasRefreshToken() {
+  return Boolean(getRefreshToken())
+}
+
+// =========================================================
+// GLOBAL 401 HANDLER
+// =========================================================
+
+export function setUnauthorizedHandler(handler,) {
   unauthorizedHandler = handler
 }
 
-async function request(
-    path,
-    options = {},
-    requestOptions = {},
-) {
-  const response = await fetch(path, {
-    ...options,
-    credentials: 'include',
+// =========================================================
+// REFRESH
+// =========================================================
+
+async function refreshTokens() {
+  const refreshToken = getRefreshToken()
+
+  if (!refreshToken) {
+    throw new Error('Refresh token is missing',)
+  }
+
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
+
     headers: {
-      ...(options.body
-          ? { 'Content-Type': 'application/json' }
-          : {}),
-      ...options.headers,
+      'Content-Type': 'application/json',
     },
-  })
+
+    body: JSON.stringify({
+      refreshToken,
+    }),
+  },)
 
   if (!response.ok) {
-    const error = new Error(
-        `HTTP ${response.status}`,
-    )
+    const error = new Error(`HTTP ${response.status}`,)
 
     error.status = response.status
 
-    if (
-        response.status === 401 &&
-        !requestOptions.ignoreUnauthorized &&
-        unauthorizedHandler
-    ) {
-      unauthorizedHandler()
+    throw error
+  }
+
+  const result = await response.json()
+
+  if (!result.accessToken || !result.refreshToken) {
+    throw new Error('Refresh response does not contain tokens',)
+  }
+
+  setTokens(result.accessToken, result.refreshToken,)
+
+  return result.accessToken
+}
+
+async function getFreshAccessToken() {
+  /*
+   * Если сразу несколько запросов получили 401,
+   * выполняем только один refresh.
+   *
+   * Остальные запросы ждут тот же Promise.
+   */
+  if (!refreshPromise) {
+    refreshPromise = refreshTokens()
+    .finally(() => {
+      refreshPromise = null
+    })
+  }
+
+  return refreshPromise
+}
+
+// =========================================================
+// REQUEST
+// =========================================================
+
+async function request(path, options = {}, requestOptions = {},) {
+  const {
+    ignoreUnauthorized = false, skipRefresh = false, retried = false,
+  } = requestOptions
+
+  const accessToken = getAccessToken()
+
+  const headers = {
+    ...(options.body ? {
+      'Content-Type': 'application/json',
+    } : {}),
+
+    ...(accessToken ? {
+      Authorization: `Bearer ${accessToken}`,
+    } : {}),
+
+    ...options.headers,
+  }
+
+  const response = await fetch(path, {
+    ...options, headers,
+  },)
+
+  // =======================================================
+  // ACCESS TOKEN EXPIRED
+  // =======================================================
+
+  if (response.status === 401 && !ignoreUnauthorized && !skipRefresh && !retried
+      && hasRefreshToken()) {
+    try {
+      await getFreshAccessToken()
+
+      /*
+       * Повторяем исходный запрос один раз,
+       * уже с новым access token.
+       */
+      return request(path, options, {
+        ...requestOptions, retried: true,
+      },)
+    } catch (refreshError) {
+      clearTokens()
+
+      if (unauthorizedHandler) {
+        unauthorizedHandler()
+      }
+
+      throw refreshError
+    }
+  }
+
+  // =======================================================
+  // ERROR
+  // =======================================================
+
+  if (!response.ok) {
+    const error = new Error(`HTTP ${response.status}`,)
+
+    error.status = response.status
+
+    if (response.status === 401 && !ignoreUnauthorized) {
+      clearTokens()
+
+      if (unauthorizedHandler) {
+        unauthorizedHandler()
+      }
     }
 
     throw error
   }
+
+  // =======================================================
+  // RESPONSE
+  // =======================================================
 
   if (response.status === 204) {
     return null
@@ -55,39 +204,41 @@ async function request(
 // AUTH
 // =========================================================
 
-export function login(username, password) {
+export function login(username, password,) {
   return request('/api/auth/login', {
     method: 'POST',
+
     body: JSON.stringify({
-      username,
-      password,
+      username, password,
     }),
-  })
+  }, {
+    ignoreUnauthorized: true, skipRefresh: true,
+  },)
 }
 
 export function getCurrentUser() {
-  return request(
-      '/api/auth/me',
-      {},
-      {
-        ignoreUnauthorized: true,
-      },
-  )
-}
-
-export function getCsrfToken() {
-  return request('/api/auth/csrf')
+  return request('/api/auth/me',)
 }
 
 export async function logout() {
-  const csrf = await getCsrfToken()
+  const refreshToken = getRefreshToken()
+
+  if (!refreshToken) {
+    return null
+  }
 
   return request('/api/auth/logout', {
     method: 'POST',
-    headers: {
-      [csrf.headerName]: csrf.token,
-    },
-  })
+
+    body: JSON.stringify({
+      refreshToken,
+    }),
+  }, {
+    /*
+     * Logout не должен пытаться делать refresh.
+     */
+    skipRefresh: true, ignoreUnauthorized: true,
+  },)
 }
 
 // =========================================================
@@ -98,16 +249,12 @@ export function getProjects() {
   return request('/api/projects')
 }
 
-export function getProjectTickets(projectId) {
-  return request(
-      `/api/projects/${projectId}/tickets`,
-  )
+export function getProjectTickets(projectId,) {
+  return request(`/api/projects/${projectId}/tickets`,)
 }
 
-export function getProjectAnalytics(projectId) {
-  return request(
-      `/api/projects/${projectId}/analytics`,
-  )
+export function getProjectAnalytics(projectId,) {
+  return request(`/api/projects/${projectId}/analytics`,)
 }
 
 // =========================================================
@@ -115,131 +262,67 @@ export function getProjectAnalytics(projectId) {
 // =========================================================
 
 export function getTicket(ticketId) {
-  return request(
-      `/api/tickets/${ticketId}`,
-  )
+  return request(`/api/tickets/${ticketId}`,)
 }
 
-export function getTicketComments(ticketId) {
-  return request(
-      `/api/tickets/${ticketId}/comments`,
-  )
+export function getTicketComments(ticketId,) {
+  return request(`/api/tickets/${ticketId}/comments`,)
 }
 
-export async function addTicketComment(
-    ticketId,
-    content,
-    authorId,
-) {
-  const csrf = await getCsrfToken()
+export function addTicketComment(ticketId, content, authorId,) {
+  return request(`/api/tickets/${ticketId}/comments`, {
+    method: 'POST',
 
-  return request(
-      `/api/tickets/${ticketId}/comments`,
-      {
-        method: 'POST',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-        body: JSON.stringify({
-          content,
-          authorId,
-        }),
-      },
-  )
+    body: JSON.stringify({
+      content, authorId,
+    }),
+  },)
 }
 
-export async function updateTicket(
-    ticketId,
-    updates,
-) {
-  const csrf = await getCsrfToken()
+export function updateTicket(ticketId, updates,) {
+  return request(`/api/tickets/${ticketId}`, {
+    method: 'PUT',
 
-  return request(
-      `/api/tickets/${ticketId}`,
-      {
-        method: 'PUT',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-        body: JSON.stringify(updates),
-      },
-  )
+    body: JSON.stringify(updates,),
+  },)
 }
 
-export async function changeTicketStatus(
-    ticketId,
-    status,
-) {
-  const csrf = await getCsrfToken()
+export function changeTicketStatus(ticketId, status,) {
+  return request(`/api/tickets/${ticketId}/status`, {
+    method: 'PATCH',
 
-  return request(
-      `/api/tickets/${ticketId}/status`,
-      {
-        method: 'PATCH',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-        body: JSON.stringify({
-          status,
-        }),
-      },
-  )
+    body: JSON.stringify({
+      status,
+    }),
+  },)
 }
 
-export async function assignTicket(
-    ticketId,
-    assigneeId,
-) {
-  const csrf = await getCsrfToken()
+export function assignTicket(ticketId, assigneeId,) {
+  return request(`/api/tickets/${ticketId}/assignee`, {
+    method: 'PATCH',
 
-  return request(
-      `/api/tickets/${ticketId}/assignee`,
-      {
-        method: 'PATCH',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-        body: JSON.stringify({
-          assigneeId,
-        }),
-      },
-  )
+    body: JSON.stringify({
+      assigneeId,
+    }),
+  },)
 }
 
-export async function deleteTicket(ticketId) {
-  const csrf = await getCsrfToken()
-
-  return request(
-      `/api/tickets/${ticketId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-      },
-  )
+export function deleteTicket(ticketId,) {
+  return request(`/api/tickets/${ticketId}`, {
+    method: 'DELETE',
+  },)
 }
 
 export function getAvailableAssignees() {
-  return request('/api/ticket-assignees')
+  return request('/api/ticket-assignees',)
 }
 
-export async function createTicket(
-    projectId,
-    payload,
-) {
-  const csrf = await getCsrfToken()
+export function createTicket(projectId, payload,) {
+  return request(`/api/projects/${projectId}/tickets`, {
+    method: 'POST',
 
-  return request(
-      `/api/projects/${projectId}/tickets`,
-      {
-        method: 'POST',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-        body: JSON.stringify(payload),
-      },
-  )
+    body: JSON.stringify(payload,),
+  },)
 }
 
 // =========================================================
@@ -247,51 +330,29 @@ export async function createTicket(
 // =========================================================
 
 export function getAdminUsers() {
-  return request('/api/admin/users')
+  return request('/api/admin/users',)
 }
 
-export async function createAdminUser(payload) {
-  const csrf = await getCsrfToken()
-
+export function createAdminUser(payload,) {
   return request('/api/admin/users', {
     method: 'POST',
-    headers: {
-      [csrf.headerName]: csrf.token,
-    },
-    body: JSON.stringify(payload),
-  })
+
+    body: JSON.stringify(payload,),
+  },)
 }
 
-export async function updateAdminUser(
-    userId,
-    payload,
-) {
-  const csrf = await getCsrfToken()
+export function updateAdminUser(userId, payload,) {
+  return request(`/api/admin/users/${userId}`, {
+    method: 'PUT',
 
-  return request(
-      `/api/admin/users/${userId}`,
-      {
-        method: 'PUT',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-        body: JSON.stringify(payload),
-      },
-  )
+    body: JSON.stringify(payload,),
+  },)
 }
 
-export async function deleteAdminUser(userId) {
-  const csrf = await getCsrfToken()
-
-  return request(
-      `/api/admin/users/${userId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-      },
-  )
+export function deleteAdminUser(userId,) {
+  return request(`/api/admin/users/${userId}`, {
+    method: 'DELETE',
+  },)
 }
 
 // =========================================================
@@ -299,56 +360,27 @@ export async function deleteAdminUser(userId) {
 // =========================================================
 
 export function getAdminProjects() {
-  return request('/api/admin/projects')
+  return request('/api/admin/projects',)
 }
 
-export async function createAdminProject(
-    payload,
-) {
-  const csrf = await getCsrfToken()
+export function createAdminProject(payload,) {
+  return request('/api/admin/projects', {
+    method: 'POST',
 
-  return request(
-      '/api/admin/projects',
-      {
-        method: 'POST',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-        body: JSON.stringify(payload),
-      },
-  )
+    body: JSON.stringify(payload,),
+  },)
 }
 
-export async function updateAdminProject(
-    projectId,
-    payload,
-) {
-  const csrf = await getCsrfToken()
+export function updateAdminProject(projectId, payload,) {
+  return request(`/api/admin/projects/${projectId}`, {
+    method: 'PUT',
 
-  return request(
-      `/api/admin/projects/${projectId}`,
-      {
-        method: 'PUT',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-        body: JSON.stringify(payload),
-      },
-  )
+    body: JSON.stringify(payload,),
+  },)
 }
 
-export async function deleteAdminProject(
-    projectId,
-) {
-  const csrf = await getCsrfToken()
-
-  return request(
-      `/api/admin/projects/${projectId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          [csrf.headerName]: csrf.token,
-        },
-      },
-  )
+export function deleteAdminProject(projectId,) {
+  return request(`/api/admin/projects/${projectId}`, {
+    method: 'DELETE',
+  },)
 }
