@@ -1,36 +1,50 @@
 spring:
-  application.name: tech-support-ticket-service
+  application:
+    name: tech-support-ticket-service
 
   datasource:
     url: jdbc:postgresql://localhost:5432/ticketdb
     username: ticketuser
     password: ticketpass
+
   jpa:
-    hibernate.ddl-auto: update
-    show-sql: true
-  properties:
     hibernate:
-      format_sql: true
-    sql:
-      init:
-        mode: never
-    logging:
-      level:
-        org.springframework.security: WARN
-  security:
-    password:
-      pepper: ${PASSWORD_PEPPER:test-pepper}
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  sql:
+    init:
+      mode: never
+
+security:
+  password:
+    pepper: ${PASSWORD_PEPPER:test-pepper}
+
+  jwt:
+    issuer: tech-support-ticket-service
+    secret: ${JWT_SECRET}
+    access-token-ttl: PT15M
+    refresh-token-ttl: P7D
+
+logging:
+  level:
+    org.springframework.security: WARN
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,shutdown
+
   endpoint:
     health:
       show-details: when-authorized
     shutdown:
       access: unrestricted
+
   info:
     env:
       enabled: true
@@ -39,6 +53,3 @@ info:
   app:
     name: tech-support-ticket-service
     description: Internal IT ticketing system
-
-
-

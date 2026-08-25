@@ -15,57 +15,38 @@ import org.springframework.security.core.AuthenticationException;
 @Component
 @RequiredArgsConstructor
 public class DatabaseAuthenticationProvider implements AuthenticationProvider {
+
     private final UserRepository userRepository;
     private final PepperedPasswordEncoder passwordEncoder;
 
     @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+    public Authentication authenticate(Authentication authentication)
+        throws AuthenticationException {
 
         String username = authentication.getName();
 
-        String password =
-            authentication.getCredentials().toString();
+        String password = authentication.getCredentials().toString();
 
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() ->
-                new BadCredentialsException(
-                    "Invalid username or password"
-                )
-            );
+            .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
 
         if (!user.isEnabled()) {
-            throw new BadCredentialsException(
-                "User is disabled"
-            );
+            throw new BadCredentialsException("User is disabled");
         }
 
-        boolean passwordMatches =
-            passwordEncoder.matches(
-                password,
-                user.getSalt(),
-                user.getPasswordHash()
-            );
+        boolean passwordMatches = passwordEncoder.matches(password, user.getSalt(),
+            user.getPasswordHash());
 
         if (!passwordMatches) {
-            throw new BadCredentialsException(
-                "Invalid username or password"
-            );
+            throw new BadCredentialsException("Invalid username or password");
         }
 
-        return new UsernamePasswordAuthenticationToken(
-            user.getUsername(),
-            null,
-            List.of(
-                new SimpleGrantedAuthority(
-                    "ROLE_" + user.getRole().name()
-                )
-            )
-        );
+        return new UsernamePasswordAuthenticationToken(user.getUsername(), null,
+            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
     }
 
     @Override
     public boolean supports(Class<?> authentication) {
-        return UsernamePasswordAuthenticationToken.class
-            .isAssignableFrom(authentication);
+        return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
     }
 }

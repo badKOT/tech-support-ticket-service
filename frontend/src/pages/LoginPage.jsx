@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import {
+  Navigate,
+  useNavigate,
+} from 'react-router-dom'
 
 import { useAuth } from '../auth/AuthContext'
 
@@ -12,17 +15,29 @@ export default function LoginPage() {
 
   const navigate = useNavigate()
 
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [username, setUsername] =
+      useState('')
+
+  const [password, setPassword] =
+      useState('')
+
+  const [error, setError] =
+      useState('')
+
+  const [submitting, setSubmitting] =
+      useState(false)
 
   if (loading) {
     return <div>Loading...</div>
   }
 
   if (currentUser) {
-    return <Navigate to="/" replace />
+    return (
+        <Navigate
+            to="/"
+            replace
+        />
+    )
   }
 
   async function handleSubmit(event) {
@@ -32,13 +47,28 @@ export default function LoginPage() {
     setSubmitting(true)
 
     try {
-      await login(username, password)
-      navigate('/')
+      await login(
+          username,
+          password,
+      )
+
+      navigate('/', {
+        replace: true,
+      })
     } catch (error) {
       if (error.status === 401) {
-        setError('Неверный логин или пароль')
+        setError(
+            'Неверный логин или пароль',
+        )
       } else {
-        setError('Не удалось выполнить вход')
+        console.error(
+            'Login failed',
+            error,
+        )
+
+        setError(
+            'Не удалось выполнить вход',
+        )
       }
     } finally {
       setSubmitting(false)
@@ -62,7 +92,9 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(event) =>
-                    setUsername(event.target.value)
+                    setUsername(
+                        event.target.value,
+                    )
                 }
                 autoComplete="username"
                 required
@@ -76,7 +108,9 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) =>
-                    setPassword(event.target.value)
+                    setPassword(
+                        event.target.value,
+                    )
                 }
                 autoComplete="current-password"
                 required
@@ -93,7 +127,9 @@ export default function LoginPage() {
               type="submit"
               disabled={submitting}
           >
-            {submitting ? 'Входим...' : 'Войти'}
+            {submitting
+                ? 'Входим...'
+                : 'Войти'}
           </button>
         </form>
       </main>

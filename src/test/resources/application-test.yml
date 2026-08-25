@@ -15,4 +15,10 @@ spring:
 
 security:
   password:
-    pepper: test-pepper
+    pepper: ${PASSWORD_PEPPER:test-pepper}
+
+  jwt:
+    issuer: tech-support-ticket-service
+    secret: ${JWT_SECRET:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+    access-token-ttl: PT15M
+    refresh-token-ttl: P7D

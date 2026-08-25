@@ -1,7 +1,6 @@
 package self.project.web.ticket.service.config;
 
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -10,15 +9,9 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import self.project.web.ticket.service.security.DatabaseAuthenticationProvider;
 
 @Configuration
@@ -27,16 +20,13 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/auth/login",
-        "/api/auth/csrf",
+        "/api/auth/refresh",
+        "/api/auth/logout",
         "/api/init-db",
-
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/v3/api-docs/**",
-
-        "/actuator/health",
-        "/actuator/health/**",
-        "/actuator/info"
+        "/actuator/health/**"
     };
 
     @Bean
@@ -47,78 +37,45 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityContextRepository securityContextRepository() {
-        return new HttpSessionSecurityContextRepository();
-    }
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authoritiesConverter =
+            new JwtGrantedAuthoritiesConverter();
 
-    @Bean
-    public CsrfTokenRepository csrfTokenRepository() {
-        return new HttpSessionCsrfTokenRepository();
-    }
+        authoritiesConverter.setAuthoritiesClaimName("roles");
+        authoritiesConverter.setAuthorityPrefix("ROLE_");
 
-    @Bean
-    public SessionAuthenticationStrategy sessionAuthenticationStrategy(
-        CsrfTokenRepository csrfTokenRepository
-    ) {
-        ChangeSessionIdAuthenticationStrategy sessionIdStrategy =
-            new ChangeSessionIdAuthenticationStrategy();
+        JwtAuthenticationConverter authenticationConverter =
+            new JwtAuthenticationConverter();
 
-        CsrfAuthenticationStrategy csrfStrategy =
-            new CsrfAuthenticationStrategy(csrfTokenRepository);
-
-        return new CompositeSessionAuthenticationStrategy(
-            List.of(
-                sessionIdStrategy,
-                csrfStrategy
-            )
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(
+            authoritiesConverter
         );
+
+        return authenticationConverter;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(
         HttpSecurity http,
-        SecurityContextRepository securityContextRepository,
-        CsrfTokenRepository csrfTokenRepository,
-        SessionAuthenticationStrategy sessionAuthenticationStrategy
+        JwtAuthenticationConverter jwtAuthenticationConverter
     ) throws Exception {
 
         http
-            .securityContext(context -> context
-                .securityContextRepository(
-                    securityContextRepository
-                )
-            )
+            .csrf(AbstractHttpConfigurer::disable)
 
             .sessionManagement(session -> session
                 .sessionCreationPolicy(
-                    SessionCreationPolicy.IF_REQUIRED
-                )
-                .sessionAuthenticationStrategy(
-                    sessionAuthenticationStrategy
-                )
-            )
-
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(
-                    csrfTokenRepository
-                )
-
-                .ignoringRequestMatchers(
-                    "/api/auth/login"
+                    SessionCreationPolicy.STATELESS
                 )
             )
 
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(
-                    PUBLIC_ENDPOINTS
-                ).permitAll()
+                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 
-                .requestMatchers(
-                    "/api/admin/**"
-                ).hasRole("ADMIN")
+                .requestMatchers("/api/admin/**")
+                .hasRole("ADMIN")
 
-                .anyRequest()
-                .authenticated()
+                .anyRequest().authenticated()
             )
 
             .exceptionHandling(exceptions -> exceptions
@@ -128,7 +85,6 @@ public class SecurityConfig {
                             HttpServletResponse.SC_UNAUTHORIZED
                         )
                 )
-
                 .accessDeniedHandler(
                     (request, response, exception) ->
                         response.sendError(
@@ -137,30 +93,18 @@ public class SecurityConfig {
                 )
             )
 
-            .formLogin(
-                AbstractHttpConfigurer::disable
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt
+                    .jwtAuthenticationConverter(
+                        jwtAuthenticationConverter
+                    )
+                )
             )
 
-            .httpBasic(
-                AbstractHttpConfigurer::disable
-            )
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
 
-            .logout(logout -> logout
-                .logoutUrl(
-                    "/api/auth/logout"
-                )
-                .invalidateHttpSession(true)
-                .clearAuthentication(true)
-                .deleteCookies(
-                    "JSESSIONID"
-                )
-                .logoutSuccessHandler(
-                    (request, response, authentication) ->
-                        response.setStatus(
-                            HttpServletResponse.SC_NO_CONTENT
-                        )
-                )
-            );
+            .logout(AbstractHttpConfigurer::disable);
 
         return http.build();
     }

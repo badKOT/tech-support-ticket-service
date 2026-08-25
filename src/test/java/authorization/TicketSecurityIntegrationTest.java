@@ -4,13 +4,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import self.project.web.ticket.service.Runner;
 import self.project.web.ticket.service.entity.Project;
 import self.project.web.ticket.service.entity.Ticket;
 import self.project.web.ticket.service.entity.UserRole;
 import self.project.web.ticket.service.repository.CommentRepository;
 import self.project.web.ticket.service.repository.ProjectRepository;
+import self.project.web.ticket.service.repository.RefreshTokenRepository;
 import self.project.web.ticket.service.repository.TicketRepository;
 import self.project.web.ticket.service.repository.UserRepository;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -22,6 +25,7 @@ import self.project.web.ticket.service.service.PasswordService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -52,6 +56,9 @@ class TicketSecurityIntegrationTest {
     @Autowired
     private PasswordService passwordService;
 
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
     private User alice;
     private User eve;
     private User bob;
@@ -64,58 +71,25 @@ class TicketSecurityIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        /*
-         * Сначала очищаем зависимые сущности.
-         */
         commentRepository.deleteAll();
         ticketRepository.deleteAll();
         projectRepository.deleteAll();
+        refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
 
-        alice = createUser(
-            "alice",
-            "Alice Johnson",
-            UserRole.REQUESTER
-        );
+        alice = createUser("alice", "Alice Johnson", UserRole.REQUESTER);
 
-        eve = createUser(
-            "eve",
-            "Eve Adams",
-            UserRole.REQUESTER
-        );
+        eve = createUser("eve", "Eve Adams", UserRole.REQUESTER);
 
-        bob = createUser(
-            "bob",
-            "Bob Smith",
-            UserRole.SUPPORT_AGENT
-        );
+        bob = createUser("bob", "Bob Smith", UserRole.SUPPORT_AGENT);
 
-        charlie = createUser(
-            "charlie",
-            "Charlie Brown",
-            UserRole.TEAM_LEAD
-        );
+        charlie = createUser("charlie", "Charlie Brown", UserRole.TEAM_LEAD);
 
-        diana = createUser(
-            "diana",
-            "Diana Prince",
-            UserRole.ADMIN
-        );
+        diana = createUser("diana", "Diana Prince", UserRole.ADMIN);
 
-        project = projectRepository.save(
-            new Project(
-                "Support",
-                "SUP",
-                "Support project"
-            )
-        );
+        project = projectRepository.save(new Project("Support", "SUP", "Support project"));
 
-        aliceTicket = new Ticket(
-            "Cannot login",
-            "Login page does not work",
-            project,
-            alice
-        );
+        aliceTicket = new Ticket("Cannot login", "Login page does not work", project, alice);
 
         aliceTicket.setAssignee(bob);
 
@@ -124,50 +98,34 @@ class TicketSecurityIntegrationTest {
 
     @Test
     void requesterShouldSeeOwnTicket() throws Exception {
-        mockMvc.perform(
-                get("/api/tickets/{id}", aliceTicket.getId())
-                    .with(user("alice").roles("REQUESTER"))
-            )
-            .andExpect(status().isOk())
-            .andExpect(
-                jsonPath("$.id")
-                    .value(aliceTicket.getId())
-            );
+        mockMvc.perform(get("/api/tickets/{id}", aliceTicket.getId()).with(
+                jwtUser("alice", UserRole.REQUESTER))).andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(aliceTicket.getId()));
     }
 
     @Test
     void requesterShouldSeeAnotherUsersTicket() throws Exception {
         mockMvc.perform(
-                get("/api/tickets/{id}", aliceTicket.getId())
-                    .with(user("eve").roles("REQUESTER"))
-            )
+                get("/api/tickets/{id}", aliceTicket.getId()).with(jwtUser("eve", UserRole.REQUESTER)))
             .andExpect(status().isOk());
     }
 
     @Test
     void assignedAgentShouldSeeTicket() throws Exception {
-        mockMvc.perform(
-                get("/api/tickets/{id}", aliceTicket.getId())
-                    .with(user("bob").roles("SUPPORT_AGENT"))
-            )
-            .andExpect(status().isOk());
+        mockMvc.perform(get("/api/tickets/{id}", aliceTicket.getId()).with(
+            jwtUser("bob", UserRole.SUPPORT_AGENT))).andExpect(status().isOk());
     }
 
     @Test
     void teamLeadShouldSeeTicket() throws Exception {
-        mockMvc.perform(
-                get("/api/tickets/{id}", aliceTicket.getId())
-                    .with(user("charlie").roles("TEAM_LEAD"))
-            )
-            .andExpect(status().isOk());
+        mockMvc.perform(get("/api/tickets/{id}", aliceTicket.getId()).with(
+            jwtUser("charlie", UserRole.TEAM_LEAD))).andExpect(status().isOk());
     }
 
     @Test
     void adminShouldSeeAnyTicket() throws Exception {
         mockMvc.perform(
-                get("/api/tickets/{id}", aliceTicket.getId())
-                    .with(user("diana").roles("ADMIN"))
-            )
+                get("/api/tickets/{id}", aliceTicket.getId()).with(jwtUser("diana", UserRole.ADMIN)))
             .andExpect(status().isOk());
     }
 
@@ -180,28 +138,14 @@ class TicketSecurityIntegrationTest {
             }
             """;
 
-        mockMvc.perform(
-                post(
-                    "/api/projects/{projectId}/tickets",
-                    project.getId()
-                )
-                    .with(user("alice").roles("REQUESTER"))
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/projects/{projectId}/tickets", project.getId()).with(
+                jwtUser("alice", UserRole.REQUESTER)).contentType(MediaType.APPLICATION_JSON)
+            .content(body)).andExpect(status().isCreated());
 
-        Ticket createdTicket = ticketRepository.findAll()
-            .stream()
-            .filter(ticket ->
-                "New ticket".equals(ticket.getTitle())
-            )
-            .findFirst()
-            .orElseThrow();
+        Ticket createdTicket = ticketRepository.findAll().stream()
+            .filter(ticket -> "New ticket".equals(ticket.getTitle())).findFirst().orElseThrow();
 
-        assertThat(createdTicket.getCreator().getId())
-            .isEqualTo(alice.getId());
+        assertThat(createdTicket.getCreator().getId()).isEqualTo(alice.getId());
     }
 
     @Test
@@ -212,22 +156,15 @@ class TicketSecurityIntegrationTest {
             }
             """.formatted(bob.getId());
 
-        mockMvc.perform(
-                patch(
-                    "/api/tickets/{ticketId}/assignee",
-                    aliceTicket.getId()
-                )
-                    .with(user("alice").roles("REQUESTER"))
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/tickets/{ticketId}/assignee", aliceTicket.getId()).with(
+                jwtUser("alice", UserRole.REQUESTER)).contentType(MediaType.APPLICATION_JSON)
+            .content(body)).andExpect(status().isForbidden());
     }
 
     @Test
     void teamLeadShouldAssignAgent() throws Exception {
         aliceTicket.setAssignee(null);
+
         ticketRepository.save(aliceTicket);
 
         String body = """
@@ -236,25 +173,15 @@ class TicketSecurityIntegrationTest {
             }
             """.formatted(bob.getId());
 
-        mockMvc.perform(
-                patch(
-                    "/api/tickets/{ticketId}/assignee",
-                    aliceTicket.getId()
-                )
-                    .with(user("charlie").roles("TEAM_LEAD"))
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isOk());
+        mockMvc.perform(patch("/api/tickets/{ticketId}/assignee", aliceTicket.getId()).with(
+                jwtUser("charlie", UserRole.TEAM_LEAD)).contentType(MediaType.APPLICATION_JSON)
+            .content(body)).andExpect(status().isOk());
 
-        Ticket updatedTicket = ticketRepository
-            .findById(aliceTicket.getId())
-            .orElseThrow();
+        Ticket updatedTicket = ticketRepository.findById(aliceTicket.getId()).orElseThrow();
 
         assertThat(updatedTicket.getAssignee()).isNotNull();
-        assertThat(updatedTicket.getAssignee().getId())
-            .isEqualTo(bob.getId());
+
+        assertThat(updatedTicket.getAssignee().getId()).isEqualTo(bob.getId());
     }
 
     @Test
@@ -265,24 +192,12 @@ class TicketSecurityIntegrationTest {
             }
             """;
 
-        mockMvc.perform(
-                patch(
-                    "/api/tickets/{ticketId}/status",
-                    aliceTicket.getId()
-                )
-                    .with(user("bob").roles("SUPPORT_AGENT"))
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isOk())
-            .andExpect(
-                jsonPath("$.status").value("CLOSED")
-            );
+        mockMvc.perform(patch("/api/tickets/{ticketId}/status", aliceTicket.getId()).with(
+                    jwtUser("bob", UserRole.SUPPORT_AGENT)).contentType(MediaType.APPLICATION_JSON)
+                .content(body)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("CLOSED"));
 
-        Ticket updatedTicket = ticketRepository
-            .findById(aliceTicket.getId())
-            .orElseThrow();
+        Ticket updatedTicket = ticketRepository.findById(aliceTicket.getId()).orElseThrow();
 
         assertThat(updatedTicket.getClosedAt()).isNotNull();
     }
@@ -295,56 +210,35 @@ class TicketSecurityIntegrationTest {
             }
             """;
 
-        mockMvc.perform(
-                patch(
-                    "/api/tickets/{ticketId}/status",
-                    aliceTicket.getId()
-                )
-                    .with(user("alice").roles("REQUESTER"))
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/tickets/{ticketId}/status", aliceTicket.getId()).with(
+                jwtUser("alice", UserRole.REQUESTER)).contentType(MediaType.APPLICATION_JSON)
+            .content(body)).andExpect(status().isForbidden());
     }
 
     @Test
-    void requestWithoutCsrfShouldBeRejected() throws Exception {
+    void requestWithoutAuthenticationShouldBeRejected() throws Exception {
+
         String body = """
             {
-              "title": "CSRF test",
+              "title": "Unauthorized ticket",
               "description": "This must be rejected"
             }
             """;
 
-        mockMvc.perform(
-                post(
-                    "/api/projects/{projectId}/tickets",
-                    project.getId()
-                )
-                    .with(user("alice").roles("REQUESTER"))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body)
-            )
-            .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/projects/{projectId}/tickets", project.getId()).contentType(
+            MediaType.APPLICATION_JSON).content(body)).andExpect(status().isUnauthorized());
     }
 
-    private User createUser(
-        String username,
-        String displayName,
-        UserRole role
-    ) {
-        PasswordService.PasswordData passwordData =
-            passwordService.encode("password123");
+    private RequestPostProcessor jwtUser(String username, UserRole role) {
+        return jwt().jwt(jwt -> jwt.subject(username).claim("roles", role.name()))
+            .authorities(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
 
-        User user = new User(
-            username,
-            displayName,
-            username + "@example.com",
-            passwordData.passwordHash(),
-            passwordData.salt(),
-            role
-        );
+    private User createUser(String username, String displayName, UserRole role) {
+        PasswordService.PasswordData passwordData = passwordService.encode("password123");
+
+        User user = new User(username, displayName, username + "@example.com",
+            passwordData.passwordHash(), passwordData.salt(), role);
 
         return userRepository.save(user);
     }

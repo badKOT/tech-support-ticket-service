@@ -9,6 +9,7 @@ import self.project.web.ticket.service.security.PepperedPasswordEncoder;
 @Service
 @RequiredArgsConstructor
 public class PasswordService {
+
     private final PepperedPasswordEncoder passwordEncoder;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -16,23 +17,14 @@ public class PasswordService {
     public PasswordData encode(String rawPassword) {
 
         if (rawPassword == null || rawPassword.isBlank()) {
-            throw new IllegalArgumentException(
-                "Password must not be empty"
-            );
+            throw new IllegalArgumentException("Password must not be empty");
         }
 
         String salt = generateSalt();
 
-        String passwordHash =
-            passwordEncoder.encode(
-                rawPassword,
-                salt
-            );
+        String passwordHash = passwordEncoder.encode(rawPassword, salt);
 
-        return new PasswordData(
-            passwordHash,
-            salt
-        );
+        return new PasswordData(passwordHash, salt);
     }
 
     private String generateSalt() {
@@ -40,13 +32,10 @@ public class PasswordService {
 
         secureRandom.nextBytes(salt);
 
-        return Base64.getEncoder()
-            .encodeToString(salt);
+        return Base64.getEncoder().encodeToString(salt);
     }
 
-    public record PasswordData(
-        String passwordHash,
-        String salt
-    ) {
+    public record PasswordData(String passwordHash, String salt) {
+
     }
 }

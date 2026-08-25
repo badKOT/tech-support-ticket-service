@@ -20,14 +20,10 @@ public class CommonService {
     private final UserRepository userRepo;
 
     public List<ProjectResponse> getProjects() {
-        return projectRepo.findAll().stream()
-                .map(ProjectResponse::from)
-                .toList();
+        return projectRepo.findAll().stream().map(ProjectResponse::from).toList();
     }
 
     public List<UserResponse> getUsers() {
-        return userRepo.findAll().stream()
-                .map(UserResponse::from)
-                .toList();
+        return userRepo.findAll().stream().map(UserResponse::from).toList();
     }
 }
