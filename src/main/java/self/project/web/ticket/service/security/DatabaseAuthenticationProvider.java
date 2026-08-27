@@ -1,23 +1,29 @@
 package self.project.web.ticket.service.security;
 
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+
 import self.project.web.ticket.service.entity.User;
 import self.project.web.ticket.service.repository.UserRepository;
-import org.springframework.security.core.AuthenticationException;
 
 @Component
 @RequiredArgsConstructor
 public class DatabaseAuthenticationProvider implements AuthenticationProvider {
 
     private final UserRepository userRepository;
+
     private final PepperedPasswordEncoder passwordEncoder;
+
+    private final PasswordRehashService passwordRehashService;
 
     @Override
     public Authentication authenticate(Authentication authentication)
@@ -40,6 +46,8 @@ public class DatabaseAuthenticationProvider implements AuthenticationProvider {
         if (!passwordMatches) {
             throw new BadCredentialsException("Invalid username or password");
         }
+
+        passwordRehashService.rehash(user, password);
 
         return new UsernamePasswordAuthenticationToken(user.getUsername(), null,
             List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));

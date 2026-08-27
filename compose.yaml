@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:17-alpine
+    container_name: tech-support-postgres
     environment:
       POSTGRES_DB: ticketdb
       POSTGRES_USER: ticketuser
@@ -8,7 +9,21 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.1
+    container_name: tech-support-keycloak
+    command:
+      - start-dev
+      - --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./keycloak/tech-support-realm.json:/opt/keycloak/data/import/tech-support-realm.json:ro
 
 volumes:
-  pgdata:
+  postgres-data:
