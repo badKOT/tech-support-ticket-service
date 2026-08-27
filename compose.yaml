@@ -2,28 +2,155 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: tech-support-postgres
+    restart: unless-stopped
+
     environment:
-      POSTGRES_DB: ticketdb
-      POSTGRES_USER: ticketuser
-      POSTGRES_PASSWORD: ticketpass
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
     volumes:
       - postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+    networks:
+      - tech-support-network
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.1
     container_name: tech-support-keycloak
+    restart: unless-stopped
+
     command:
       - start-dev
       - --import-realm
+
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+
+      KC_HOSTNAME: http://${SERVER_HOST}:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+
+      KC_HEALTH_ENABLED: "true"
+
     ports:
       - "8180:8080"
+
     volumes:
-      - ./keycloak/tech-support-realm.json:/opt/keycloak/data/import/tech-support-realm.json:ro
+      - ./keycloak:/opt/keycloak/data/import:ro
+      - keycloak-data:/opt/keycloak/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/9000"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+    networks:
+      - tech-support-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: tech-support-backend
+    restart: unless-stopped
+
+    environment:
+      SPRING_PROFILES_ACTIVE: oidc
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      JWT_SECRET: ${JWT_SECRET}
+      PASSWORD_PEPPER: ${PASSWORD_PEPPER}
+
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI}
+
+      FRONTEND_URL: ${FRONTEND_URL}
+
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      keycloak:
+        condition: service_healthy
+
+    networks:
+      - tech-support-network
+
+  init-db:
+    image: curlimages/curl:8.12.1
+    container_name: tech-support-init-db
+    restart: "no"
+
+    depends_on:
+      backend:
+        condition: service_started
+
+    command:
+      - sh
+      - -c
+      - |
+        echo "Waiting for backend..."
+
+        until curl -fsS http://backend:8080/actuator/health; do
+          sleep 2
+        done
+
+        echo "Backend is ready"
+
+        curl -fsS http://backend:8080/api/init-db
+
+        echo
+        echo "Database initialization finished"
+
+    networks:
+      - tech-support-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: tech-support-frontend
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+
+    networks:
+      - tech-support-network
 
 volumes:
   postgres-data:
+  keycloak-data:
+
+networks:
+  tech-support-network:
+    driver: bridge
