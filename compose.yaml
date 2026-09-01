@@ -38,13 +38,11 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
 
-      KC_HOSTNAME: http://${SERVER_HOST}:8180
+      KC_HOSTNAME: https://auth.88-218-67-241.sslip.io
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
-
       KC_HEALTH_ENABLED: "true"
-
-    ports:
-      - "8180:8080"
 
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
@@ -53,8 +51,8 @@ services:
     healthcheck:
       test:
         [
-          "CMD-SHELL",
-          "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/9000"
+               "CMD-SHELL",
+               "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/9000"
         ]
       interval: 10s
       timeout: 5s
@@ -139,10 +137,11 @@ services:
 
     ports:
       - "80:80"
+      - "443:443"
 
-    depends_on:
-      init-db:
-        condition: service_completed_successfully
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
 
     networks:
       - tech-support-network
