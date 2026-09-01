@@ -1,4 +1,47 @@
-Приложение для заведения тикетов.
+# Tech Support Ticket Service
+
+Приложение для заведения и обработки тикетов.
+
+## Запуск через Docker Compose
+
+Для запуска всего стенда одной командой:
+
+```bash
+docker compose up -d --build
+```
+
+## Проверка состояния:
+docker compose ps -a
+
+Ожидаемое состояние:
+backend — Up
+frontend — Up
+keycloak — Up (healthy)
+postgres — Up (healthy)
+init-db — Exited (0)
+
+## Остановка:
+docker compose down
+Без -v, если не нужно удалять данные PostgreSQL и Keycloak.
+
+## Стенд
+Приложение:
+https://88-218-67-241.sslip.io
+
+Keycloak:
+https://auth.88-218-67-241.sslip.io
+
+OIDC issuer:
+https://auth.88-218-67-241.sslip.io/realms/tech-support
+
+HTTPS завершается на nginx.
+Сертификат выдан Let's Encrypt для:
+88-218-67-241.sslip.io
+auth.88-218-67-241.sslip.io
+
+Порт 80 используется для HTTP-01 challenge и редиректа на HTTPS.
+
+## Переменные окружения
 
 Для запуска:
 `docker compose up -d`
