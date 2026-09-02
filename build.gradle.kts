@@ -27,10 +27,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
 
-    implementation(
-        "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17"
-    )
-
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 

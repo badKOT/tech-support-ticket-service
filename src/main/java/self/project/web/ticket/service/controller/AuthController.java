@@ -45,7 +45,6 @@ public class AuthController {
         User user = findUserEntity(authentication.getName());
 
         String accessToken = jwtService.createAccessToken(user);
-
         String refreshToken = refreshTokenService.create(user).token();
 
         return new LoginResponse(accessToken, refreshToken, "Bearer", UserResponse.from(user));
@@ -74,25 +73,6 @@ public class AuthController {
         if (request != null) {
             refreshTokenService.revoke(request.refreshToken());
         }
-        return UserResponse.from(findUserEntity(authentication.getName()));
-    }
-
-    @PostMapping("/logout")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(@RequestBody(required = false) RefreshTokenRequest request) {
-        if (request != null) {
-            refreshTokenService.revoke(request.refreshToken());
-        }
-    }
-
-    @PostMapping("/refresh")
-    public TokenRefreshResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        RefreshTokenService.RotatedRefreshToken rotated = refreshTokenService.rotate(
-            request.refreshToken());
-
-        String accessToken = jwtService.createAccessToken(rotated.user());
-
-        return new TokenRefreshResponse(accessToken, rotated.refreshToken(), "Bearer");
     }
 
     private User findUserEntity(String username) {
