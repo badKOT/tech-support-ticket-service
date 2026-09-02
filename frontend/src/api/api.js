@@ -172,6 +172,103 @@ async function request(path, options = {}, requestOptions = {},) {
 
     error.status = response.status
 
+
+    error.status = response.status
+
+    throw error
+  }
+
+  const result = await response.json()
+
+  if (!result.accessToken || !result.refreshToken) {
+    throw new Error('Refresh response does not contain tokens',)
+  }
+
+  setTokens(result.accessToken, result.refreshToken,)
+
+  return result.accessToken
+}
+
+async function getFreshAccessToken() {
+  /*
+   * Если сразу несколько запросов получили 401,
+   * выполняем только один refresh.
+   *
+   * Остальные запросы ждут тот же Promise.
+   */
+  if (!refreshPromise) {
+    refreshPromise = refreshTokens()
+    .finally(() => {
+      refreshPromise = null
+    })
+  }
+
+  return refreshPromise
+}
+
+// =========================================================
+// REQUEST
+// =========================================================
+
+async function request(path, options = {}, requestOptions = {},) {
+  const {
+    ignoreUnauthorized = false, skipRefresh = false, retried = false,
+  } = requestOptions
+
+  const accessToken = getAccessToken()
+
+  const headers = {
+    ...(options.body ? {
+      'Content-Type': 'application/json',
+    } : {}),
+
+    ...(accessToken ? {
+      Authorization: `Bearer ${accessToken}`,
+    } : {}),
+
+    ...options.headers,
+  }
+
+  const response = await fetch(path, {
+    ...options, headers,
+  },)
+
+  // =======================================================
+  // ACCESS TOKEN EXPIRED
+  // =======================================================
+
+  if (response.status === 401 && !ignoreUnauthorized && !skipRefresh && !retried
+      && hasRefreshToken()) {
+    try {
+      await getFreshAccessToken()
+
+      /*
+       * Повторяем исходный запрос один раз,
+       * уже с новым access token.
+       */
+      return request(path, options, {
+        ...requestOptions, retried: true,
+      },)
+    } catch (refreshError) {
+      clearTokens()
+
+      if (unauthorizedHandler) {
+        unauthorizedHandler()
+      }
+
+      throw refreshError
+    }
+  }
+
+  // =======================================================
+  // ERROR
+  // =======================================================
+
+  if (!response.ok) {
+    const error = new Error(`HTTP ${response.status}`,)
+
+    error.status = response.status
+
     if (response.status === 401 && !ignoreUnauthorized) {
       clearTokens()
 

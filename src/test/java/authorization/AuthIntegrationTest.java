@@ -1,23 +1,25 @@
 package authorization;
 
-import jakarta.servlet.http.HttpSession;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import self.project.web.ticket.service.Runner;
 import self.project.web.ticket.service.entity.User;
 import self.project.web.ticket.service.entity.UserRole;
+import self.project.web.ticket.service.repository.RefreshTokenRepository;
 import self.project.web.ticket.service.repository.UserRepository;
 import self.project.web.ticket.service.service.PasswordService;
 import self.project.web.ticket.service.repository.RefreshTokenRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -33,6 +35,9 @@ class AuthIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
     private PasswordService passwordService;
@@ -60,6 +65,7 @@ class AuthIntegrationTest {
 
     @Test
     void shouldLoginWithCorrectUsernameAndPassword() throws Exception {
+
         String body = """
             {
               "username": "diana",
@@ -79,6 +85,7 @@ class AuthIntegrationTest {
 
     @Test
     void shouldRejectWrongPassword() throws Exception {
+
         String body = """
             {
               "username": "diana",
