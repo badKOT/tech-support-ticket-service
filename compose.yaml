@@ -3,11 +3,74 @@ services:
     image: postgres:17-alpine
     container_name: tech-support-postgres
     environment:
-      POSTGRES_DB: ticketdb
-      POSTGRES_USER: ticketuser
-      POSTGRES_PASSWORD: ticketpass
+      SPRING_PROFILES_ACTIVE: oidc
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      JWT_SECRET: ${JWT_SECRET}
+      PASSWORD_PEPPER: ${PASSWORD_PEPPER}
+
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI}
+
+      FRONTEND_URL: ${FRONTEND_URL}
+
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      keycloak:
+        condition: service_healthy
+
+    networks:
+      - tech-support-network
+
+  init-db:
+    image: curlimages/curl:8.12.1
+    container_name: tech-support-init-db
+    restart: "no"
+
+    depends_on:
+      backend:
+        condition: service_started
+
+    command:
+      - sh
+      - -c
+      - |
+        echo "Waiting for backend..."
+
+        until curl -fsS http://backend:8080/actuator/health; do
+          sleep 2
+        done
+
+        echo "Backend is ready"
+
+        curl -fsS http://backend:8080/api/init-db
+
+        echo
+        echo "Database initialization finished"
+
+    networks:
+      - tech-support-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: tech-support-frontend
+    restart: unless-stopped
+
     ports:
-      - "5432:5432"
+      - "80:80"
+      - "443:443"
+
     volumes:
       - postgres-data:/var/lib/postgresql/data
 

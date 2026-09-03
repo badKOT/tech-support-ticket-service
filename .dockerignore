@@ -1,0 +1,9 @@
+.gradle
+.idea
+build
+frontend
+.git
+.gitignore
+keycloak
+*.iml
+README.md
