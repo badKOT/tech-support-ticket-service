@@ -1,0 +1,42 @@
+{
+  "realm": "tech-support",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "tech-support-ticket-service",
+      "name": "Tech Support Ticket Service",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "tech-support-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8080/login/oauth2/code/support-oidc"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "diana",
+      "enabled": true,
+      "email": "diana@example.com",
+      "emailVerified": true,
+      "firstName": "Diana",
+      "lastName": "Prince",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "diana123",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

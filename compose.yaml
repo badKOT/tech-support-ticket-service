@@ -2,74 +2,6 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: tech-support-postgres
-    restart: unless-stopped
-
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
-    networks:
-      - tech-support-network
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.7.1
-    container_name: tech-support-keycloak
-    restart: unless-stopped
-
-    command:
-      - start-dev
-      - --import-realm
-
-    environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-
-      KC_HOSTNAME: https://auth.88-218-67-241.sslip.io
-      KC_PROXY_HEADERS: xforwarded
-      KC_HTTP_ENABLED: "true"
-      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
-      KC_HEALTH_ENABLED: "true"
-
-    volumes:
-      - ./keycloak:/opt/keycloak/data/import:ro
-      - keycloak-data:/opt/keycloak/data
-
-    healthcheck:
-      test:
-        [
-               "CMD-SHELL",
-               "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/9000"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 30s
-
-    networks:
-      - tech-support-network
-
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-
-    container_name: tech-support-backend
-    restart: unless-stopped
-
     environment:
       SPRING_PROFILES_ACTIVE: oidc
 
@@ -140,16 +72,21 @@ services:
       - "443:443"
 
     volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
+      - postgres-data:/var/lib/postgresql/data
 
-    networks:
-      - tech-support-network
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.1
+    container_name: tech-support-keycloak
+    command:
+      - start-dev
+      - --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./keycloak/tech-support-realm.json:/opt/keycloak/data/import/tech-support-realm.json:ro
 
 volumes:
   postgres-data:
-  keycloak-data:
-
-networks:
-  tech-support-network:
-    driver: bridge
