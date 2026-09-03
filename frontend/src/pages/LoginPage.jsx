@@ -131,7 +131,18 @@ export default function LoginPage() {
                 ? 'Входим...'
                 : 'Войти'}
           </button>
+
+          <button
+              type="button"
+              onClick={() => {
+                window.location.href =
+                    '/oauth2/authorization/support-oidc'
+              }}
+          >
+            Войти через SSO
+          </button>
         </form>
       </main>
   )
 }
+

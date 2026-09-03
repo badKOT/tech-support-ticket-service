@@ -384,3 +384,25 @@ export function deleteAdminProject(projectId,) {
     method: 'DELETE',
   },)
 }
+
+export async function exchangeOidcSession() {
+  const response = await fetch(
+      '/api/auth/oidc/token',
+      {
+        method: 'POST',
+        credentials: 'include',
+      },
+  )
+
+  if (!response.ok) {
+    const error = new Error(
+        `HTTP ${response.status}`,
+    )
+
+    error.status = response.status
+
+    throw error
+  }
+
+  return response.json()
+}

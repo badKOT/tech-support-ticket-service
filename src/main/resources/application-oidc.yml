@@ -1,0 +1,30 @@
+spring:
+  config:
+    activate:
+      on-profile: oidc
+
+  security:
+    oauth2:
+      client:
+        registration:
+          support-oidc:
+            provider: support-oidc
+            client-id: ${OIDC_CLIENT_ID}
+            client-secret: ${OIDC_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+
+        provider:
+          support-oidc:
+            issuer-uri: ${OIDC_ISSUER_URI}
+
+security:
+  oidc:
+    enabled: true
+
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost}
