@@ -1,68 +1,57 @@
 # AGENTS.md — tech-support-ticket-service
 
-## Quickstart
+## Quickstart & Commands
 ```bash
-docker compose up -d          # PostgreSQL 17
-./gradlew bootRun             # app on :8080
-curl http://localhost:8080/api/init-db  # seed test data (idempotent)
+# Full docker stack (Postgres, Keycloak, Backend, Frontend/Nginx, DB seed)
+docker compose up -d --build
+
+# Backend tests (H2 in-memory, no external deps needed)
+./gradlew test                                                                # all tests
+./gradlew test --tests authorization.TicketSecurityIntegrationTest             # single class
+./gradlew test --tests "authorization.TicketSecurityIntegrationTest.requesterShouldSeeOwnTicket" # single method
+
+# Backend local run (requires JWT_SECRET from .env, min 32 bytes Base64)
+export JWT_SECRET="MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+./gradlew bootRun
+
+# Seed test data (idempotent, skips if users exist)
+curl http://localhost:8080/api/init-db
+
+# Frontend local dev (Vite SPA on :5173, proxies /api and /oauth2 to :8080)
+cd frontend && npm install && npm run dev
+cd frontend && npm run build
 ```
 
 ## Stack
-- **Java 21**, **Spring Boot 4.1.0**, **Gradle 9.5.1** (Kotlin DSL)
-- **PostgreSQL 17** (prod, via Docker), **H2** (test, in-memory)
-- **Lombok** for boilerplate (@Getter, @Slf4j, etc.)
-- No Spring Security, No migrations (Flyway/Liquibase)
+- **Java 21**, **Spring Boot 3.5.16**, **Gradle** (Kotlin DSL)
+- **Database**: PostgreSQL 17 (Docker/prod), H2 in-memory (test profile)
+- **Frontend**: React 19, Vite, React Router 7 under `frontend/`
+- **Auth**: Spring Security, JWT (HMAC-SHA256), OAuth2/OIDC (Keycloak 26.7), BCrypt + Pepper + Salt
 
-## Commands
-```bash
-./gradlew test     # runs the single @SpringBootTest smoke test
-./gradlew bootRun  # starts app (also runs tests)
-```
-There are **no lint, format, or typecheck** commands configured.
-
-## Architecture
-- Single-module, standard layered MVC under `self.project.web.ticket.service`
-- Entities: `Ticket`, `Comment`, `User`, `Project`, `TicketStatus` (enum)
-- DTOs: Java `record` classes with static `from(Entity)` factory
-- All API paths under `/api`; static SPA frontend at `/` (`src/main/resources/static/index.html`)
-
-## Database
-- `hibernate.ddl-auto: update` — schema is created/updated from JPA annotations automatically. **No migration scripts exist.**
-- Prod config: `src/main/resources/application.yml`
-- Test config: `src/test/resources/application.yml` (H2, `create-drop`)
-
-## API Endpoints
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/api/projects` | List projects |
-| GET | `/api/users` | List users |
-| GET | `/api/init-db` | Seed 27 tickets across 3 projects with varied dates (idempotent) |
-| GET/POST | `/api/projects/{id}/tickets` | List/create tickets |
-| GET/PUT | `/api/tickets/{id}` | Get/update ticket (send `assigneeId: null` to unassign; `projectId` to reassign) |
-| GET/POST | `/api/tickets/{id}/comments` | List/add comments |
-| GET | `/api/projects/{id}/analytics` | Status counts, created-vs-resolved time-series, avg resolution per assignee |
-| GET/POST | `/api/admin/users` | List/create users |
-| PUT/DELETE | `/api/admin/users/{id}` | Update/delete user |
-| GET/POST | `/api/admin/projects` | List/create projects |
-| PUT/DELETE | `/api/admin/projects/{id}` | Update/delete project |
-
-## Frontend
-- `index.html` — landing page: user list + project cards; nav link to Admin
-- `project.html` — project view with ticket list, create form, detail modal (split-field status/assignee/project), comments, and Analytics modal (Chart.js 4.4.4 from CDN)
-- `admin.html` — inline CRUD for users and projects
-- Status dropdown rules (frontend-only): **CLOSED** shows only `REOPENED`; all other statuses hide `REOPENED`
-- `<option>` elements strip HTML; the `(me)` suffix on the current user is plain text, not italic
-
-## Database & Entities
-- `hibernate.ddl-auto: update` — schema is created/updated from JPA annotations automatically. **No migration scripts exist.**
-- Prod config: `src/main/resources/application.yml`
-- Test config: `src/test/resources/application.yml` (H2, `create-drop`)
-- `Ticket.closedAt` is set automatically when status transitions to `CLOSED` (not reset on later changes)
-- `@CreationTimestamp` on `Ticket.createdAt` overrides manual `.setCreatedAt()`. To backdate tickets in test data, use `TicketRepository.updateCreatedAt(id, pastInstant)` which is a `@Modifying` JPQL UPDATE that bypasses the annotation
-
-## Conventions
-- `TicketService` defaults to `@Transactional(readOnly=true)` at class level; write methods override with `@Transactional`
-- Controllers log with `@Slf4j`, prefixing method+path in each log line
+## Architecture & Conventions
+- Single-module backend under package `self.project.web.ticket.service`
+- Services default to `@Transactional(readOnly = true)` at class level; write operations override with `@Transactional`
+- DTOs are Java `record`s with static `from(Entity)` factories
+- Controllers use `@Slf4j` and log `[HTTP_METHOD /path]` prefixes
 - Entity IDs use `GenerationType.IDENTITY`
-- DTOs: Java `record` classes with static `from(Entity)` factory
-- No auth — endpoints are public
+- Schema management: `hibernate.ddl-auto: update` — **no Flyway/Liquibase migration scripts exist**
+
+## Environment & Testing Quirks
+- `JWT_SECRET` is **mandatory** for `bootRun` and non-test profiles. Must decode to ≥256 bits (32 bytes).
+- Spring integration tests use `@ActiveProfiles("test")` with built-in test secrets and H2 `create-drop` in `src/test/resources/application-test.yml`.
+- `@CreationTimestamp` on `Ticket.createdAt` overrides manual `.setCreatedAt()`. To backdate tickets in tests or seeds, use `TicketRepository.updateCreatedAt(id, pastInstant)` / `updateClosedAt(id, pastInstant)` (`@Modifying` JPQL queries).
+
+## Security & Auth Mechanics
+- **JWT & Tokens**: Stateless bearer token model. Access token TTL = 15m; refresh token TTL = 7d. Refresh tokens are stored as SHA-256 hashes in `refresh_tokens` table and rotated on each `/api/auth/refresh` call (old token is revoked).
+- **Password Hashing**: `PepperedPasswordEncoder` computes `BCrypt(password + pepper + salt)`. On every successful login, `PasswordRehashService` generates a fresh salt and rehashes the password automatically.
+- **OIDC Flow**: `GET /oauth2/authorization/support-oidc` -> Keycloak -> Spring OAuth2 callback saves email in session -> frontend calls `POST /api/auth/oidc/token` to exchange session for a JWT pair. Local user with matching email must exist and be enabled.
+- **Roles**: `REQUESTER`, `SUPPORT_AGENT`, `TEAM_LEAD`, `ADMIN` (defined in `UserRole` enum).
+
+## Domain & RBAC Rules (`TicketAccessService`)
+- **Read**: All authenticated users can view all tickets, projects, and comments.
+- **Ticket Content Edit** (title/desc): `ADMIN` and `TEAM_LEAD` can edit any ticket. `REQUESTER` can only edit their own ticket if status is `OPEN`. `SUPPORT_AGENT` cannot edit content.
+- **Ticket Status**: `ADMIN` and `TEAM_LEAD` can set any status. `SUPPORT_AGENT` can only change status if assigned to the ticket. `REQUESTER` can only reopen (`CLOSED`/`RESOLVED` -> `REOPENED`) own tickets.
+- **Ticket Assignment**: `ADMIN` and `TEAM_LEAD` can assign to any enabled `SUPPORT_AGENT`/`TEAM_LEAD` or unassign (`assigneeId: null`). `SUPPORT_AGENT` can only self-assign. `REQUESTER` cannot assign.
+- **Closed Timestamps**: `Ticket.closedAt` is set automatically to `Instant.now()` when transitioning to `CLOSED`, and reset to `null` if moved to any non-closed status.
+- **Project Move & Analytics**: Only `ADMIN` and `TEAM_LEAD`.
+- **Ticket Delete & Admin Endpoints** (`/api/admin/**`): `ADMIN` role only.
