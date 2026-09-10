@@ -8,7 +8,7 @@
             "enabled": true,
             "protocol": "openid-connect",
             "publicClient": false,
-            "secret": "tech-support-stage-client-secret",
+            "secret": "${OIDC_CLIENT_SECRET}",
             "standardFlowEnabled": true,
             "directAccessGrantsEnabled": false,
             "redirectUris": [

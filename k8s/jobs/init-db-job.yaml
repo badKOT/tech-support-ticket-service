@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: init-db
+  namespace: tech-support
+
+spec:
+  backoffLimit: 4
+
+  template:
+    metadata:
+      labels:
+        app: init-db
+
+    spec:
+      restartPolicy: Never
+
+      containers:
+        - name: init-db
+          image: curlimages/curl:8.12.1
+
+          args:
+            - --fail
+            - --show-error
+            - --silent
+            - --retry
+            - "20"
+            - --retry-delay
+            - "3"
+            - --retry-connrefused
+            - http://backend:8080/api/init-db
+
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"

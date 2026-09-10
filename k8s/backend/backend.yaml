@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: tech-support
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+        - name: backend
+          image: tech-support-backend:k8s
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: SPRING_PROFILES_ACTIVE
+
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DB_URL
+
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: OIDC_CLIENT_ID
+
+            - name: OIDC_ISSUER_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: OIDC_ISSUER_URI
+
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: FRONTEND_URL
+
+            - name: SERVER_FORWARD_HEADERS_STRATEGY
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: SERVER_FORWARD_HEADERS_STRATEGY
+
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: JWT_SECRET
+
+            - name: PASSWORD_PEPPER
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: PASSWORD_PEPPER
+
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: OIDC_CLIENT_SECRET
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "600Mi"
+            limits:
+              cpu: "800m"
+              memory: "800Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: tech-support
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: backend
+
+  ports:
+    - port: 8080
+      targetPort: 8080
