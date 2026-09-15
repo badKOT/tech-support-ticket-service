@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: tech-support-ingress
+  namespace: tech-support
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+    - hosts:
+        - 88-218-67-241.sslip.io
+      secretName: frontend-tls-prod
+
+    - hosts:
+        - auth.88-218-67-241.sslip.io
+      secretName: keycloak-tls-prod
+
+  rules:
+    - host: 88-218-67-241.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+    - host: auth.88-218-67-241.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8080

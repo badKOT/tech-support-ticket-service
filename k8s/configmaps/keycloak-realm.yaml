@@ -1,0 +1,51 @@
+apiVersion: v1
+data:
+  tech-support-realm.json: |
+    {
+        "realm": "tech-support",
+        "enabled": true,
+        "clients": [
+            {
+                "clientId": "tech-support-ticket-service",
+                "name": "Tech Support Ticket Service",
+                "enabled": true,
+                "protocol": "openid-connect",
+                "publicClient": false,
+                "secret": "${OIDC_CLIENT_SECRET}",
+                "standardFlowEnabled": true,
+                "directAccessGrantsEnabled": false,
+                "redirectUris": [
+                    "http://localhost:8080/login/oauth2/code/support-oidc",
+                    "http://localhost:5173/login/oauth2/code/support-oidc",
+                    "http://localhost/login/oauth2/code/support-oidc",
+                    "https://88-218-67-241.sslip.io/login/oauth2/code/support-oidc"
+                ],
+                "webOrigins": [
+                    "http://localhost:5173",
+                    "http://localhost",
+                    "https://88-218-67-241.sslip.io"
+                ]
+            }
+        ],
+        "users": [
+            {
+                "username": "diana",
+                "enabled": true,
+                "email": "diana@example.com",
+                "emailVerified": true,
+                "firstName": "Diana",
+                "lastName": "Prince",
+                "credentials": [
+                    {
+                        "type": "password",
+                        "value": "diana123",
+                        "temporary": false
+                    }
+                ]
+            }
+        ]
+    }
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: tech-support
