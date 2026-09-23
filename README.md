@@ -73,5 +73,5 @@ Frontend: `cd frontend`, `npm install`, `npm run dev`
 7. ~~OAuth2/OIDC as a client integrating with an existing provider.~~
 8. ~~Containerize the app. Make it possible to run everything with `docker compose up` (with flags when necessary).~~
 9. ~~Side quest: HTTPS deployment.~~
-10. Kubernetes. Get the app running manually with kubectl. Handle both incoming and outgoing requests properly.
+10. ~~Kubernetes. Get the app running manually with kubectl. Handle both incoming and outgoing requests properly.~~
 11. CI/CD. Jenkins pipeline to deliver the updates
