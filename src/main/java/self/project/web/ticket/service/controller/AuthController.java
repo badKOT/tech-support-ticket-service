@@ -79,9 +79,4 @@ public class AuthController {
         return userRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
-
-    @GetMapping("/api/version")
-    public String version() {
-        return "v1";
-    }
 }
