@@ -61,6 +61,98 @@ Frontend: `cd frontend`, `npm install`, `npm run dev`
 
 Для схемы в бд использую hibernate.ddl-auto: update, скриптов для миграции схемы нет.
 
+
+## CI/CD через Jenkins
+
+Для backend и frontend настроены отдельные Jenkins pipeline.
+Обновления автоматически доставляются из ветки `09_ci_cd` 
+в существующий k3s-кластер.
+
+### Архитектура
+
+```mermaid
+flowchart LR
+    GitHub["GitHub: ветка 09_ci_cd"]
+    Jenkins["Jenkins VM: 2.28.138.254"]
+    GHCR["GHCR: public images"]
+    Kubernetes["k3s VM: 88.218.67.241"]
+
+    GitHub -->|SCM polling| Jenkins
+    Jenkins -->|docker push| GHCR
+    Jenkins -->|SSH и kubectl| Kubernetes
+    GHCR -->|Скачивание образов| Kubernetes
+```
+
+Namespace приложения: `tech-support`.
+
+CI/CD обновляет существующие Deployments `backend` и `frontend`.
+Конфигурация PostgreSQL, Keycloak, Services, Ingress и PVC
+в release pipeline не изменяется.
+
+### Автоматический запуск
+
+В обоих Jenkinsfile используется SCM polling:
+
+```groovy
+triggers {
+    pollSCM('H/2 * * * *')
+}
+```
+
+Jenkins проверяет GitHub каждые две минуты.
+При появлении новых коммитов запускается соответствующий pipeline.
+
+### Backend pipeline
+
+Этапы:
+
+1. Checkout исходного кода.
+2. Определение Git SHA.
+3. Тестирование и сборка Gradle.
+4. Публикация JUnit-отчётов в Jenkins.
+5. Сборка Docker-образа.
+6. Публикация образа в GHCR.
+7. Deployment через SSH на Kubernetes VM.
+8. Ожидание rollout и smoke test.
+
+Команда тестирования и сборки:
+
+```sh
+./gradlew clean build --no-daemon --max-workers=2
+```
+
+### Frontend pipeline
+
+Сборка выполняется внутри многостадийного Docker-образа:
+
+1. Node.js: установка зависимостей через `npm ci`.
+2. Node.js: production build через `npm run build`.
+3. nginx: размещение собранной статики и nginx-конфигурации.
+
+Jenkins передаёт SHA коммита через build argument `APP_VERSION`.
+Dockerfile записывает его в `/usr/share/nginx/html/version.txt`.
+
+После deployment проверяются:
+
+- image reference в Deployment;
+- совпадение `/version.txt` с SHA ожидаемой сборки;
+- доступность `/api/version` через frontend nginx.
+
+Для проверки версии и временных HTTP-ошибок предусмотрены
+ограниченные повторные попытки
+
+
+### Текущие ограничения
+- Общий таймаут backend pipeline — 30 минут, frontend pipeline — 20 минут.
+- Ожидание rollout каждого Deployment ограничено пятью минутами.
+- Один executor и отсутствие фильтрации изменений по каталогам.
+- Frontend pipeline проверяет сборку; отдельные unit-тесты
+  и блокирующий `npm audit` этап не настроены.
+- Автоматический rollback не настроен.
+  Ошибка smoke test приводит к `FAILURE`,
+  но не отменяет уже выполненное обновление Deployment.
+
+
 ## Общий план
 
 0. ~~Create a basic crud.~~
@@ -74,4 +166,4 @@ Frontend: `cd frontend`, `npm install`, `npm run dev`
 8. ~~Containerize the app. Make it possible to run everything with `docker compose up` (with flags when necessary).~~
 9. ~~Side quest: HTTPS deployment.~~
 10. ~~Kubernetes. Get the app running manually with kubectl. Handle both incoming and outgoing requests properly.~~
-11. CI/CD. Jenkins pipeline to deliver the updates
+11. ~~CI/CD. Jenkins pipeline to deliver the updates~~
