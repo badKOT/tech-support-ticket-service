@@ -85,5 +85,25 @@ pipeline {
                         }
                     }
         }
+
+        stage('Deploy backend') {
+            steps {
+                sshagent(credentials: ['k3s-deploy-ssh']) {
+                    sh '''
+                        set -eu
+
+                        sh -n scripts/deploy-backend-registry.sh
+
+                        ssh \
+                            -o BatchMode=yes \
+                            -o StrictHostKeyChecking=yes \
+                            -o ConnectTimeout=15 \
+                            ticketuser@88.218.67.241 \
+                            "sh -s -- '${REGISTRY_IMAGE}:${GIT_SHA}'" \
+                            < scripts/deploy-backend-registry.sh
+                    '''
+                }
+            }
+        }
     }
 }
