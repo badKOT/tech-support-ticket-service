@@ -9,6 +9,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'tech-support-backend'
+        REGISTRY_IMAGE = 'ghcr.io/dorablebetscha/tech-support-backend'
     }
 
     stages {
@@ -52,6 +53,37 @@ pipeline {
                         --format 'Tags={{json .RepoTags}} ID={{.Id}}'
                 '''
             }
+        }
+
+        stage('Push Docker image') {
+                    steps {
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'ghcr-push',
+                                usernameVariable: 'GHCR_USER',
+                                passwordVariable: 'GHCR_TOKEN'
+                            )
+                        ]) {
+                            sh '''
+                                set +x
+                                set -eu
+
+                                DOCKER_CONFIG="$(mktemp -d)"
+                                export DOCKER_CONFIG
+                                trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+
+                                printf '%s' "$GHCR_TOKEN" | docker login ghcr.io \
+                                    --username "$GHCR_USER" \
+                                    --password-stdin
+
+                                docker tag \
+                                    "${IMAGE_NAME}:${GIT_SHA}" \
+                                    "${REGISTRY_IMAGE}:${GIT_SHA}"
+
+                                docker push "${REGISTRY_IMAGE}:${GIT_SHA}"
+                            '''
+                        }
+                    }
         }
     }
 }
