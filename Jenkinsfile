@@ -7,6 +7,10 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
     }
 
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
     environment {
         IMAGE_NAME = 'tech-support-backend'
         REGISTRY_IMAGE = 'ghcr.io/dorablebetscha/tech-support-backend'
