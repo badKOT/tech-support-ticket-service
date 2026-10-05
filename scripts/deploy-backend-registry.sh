@@ -24,8 +24,11 @@ fi
 
 echo "Checking /api/version"
 curl --fail --silent --show-error \
-    --connect-timeout 10 \
-    --max-time 30 \
+    --retry 12 \
+    --retry-delay 5 \
+    --retry-max-time 90 \
+    --connect-timeout 5 \
+    --max-time 15 \
     https://88-218-67-241.sslip.io/api/version
 
 printf '\nDeployment successful: %s\n' "$actual_image"
