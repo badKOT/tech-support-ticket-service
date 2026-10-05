@@ -8,6 +8,6 @@ public class VersionController {
 
     @GetMapping("/api/version")
     public String version() {
-        return "v1";
+        return "v2";
     }
 }
