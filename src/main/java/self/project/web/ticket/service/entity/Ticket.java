@@ -47,6 +47,9 @@ public class Ticket {
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TicketActivity> activities = new ArrayList<>();
+
     @Column(nullable = false)
     @CreationTimestamp
     private Instant createdAt;

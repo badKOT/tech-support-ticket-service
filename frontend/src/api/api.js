@@ -406,3 +406,9 @@ export async function exchangeOidcSession() {
 
   return response.json()
 }
+export function getTicketActivity(ticketId) {
+  return request(`/api/tickets/${ticketId}/activity`)
+}
+export function getGithubIssue(url) {
+  return request(`/api/integrations/github/issue?url=${encodeURIComponent(url)}`)
+}

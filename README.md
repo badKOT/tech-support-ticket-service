@@ -99,8 +99,10 @@ triggers {
 }
 ```
 
-Jenkins проверяет GitHub каждые две минуты.
-При появлении новых коммитов запускается соответствующий pipeline.
+Для backend и frontend настроены отдельные Jenkins pipeline.
+Сборка и deployment выполняются из ветки `main`.
+Обе задачи используют Pipeline script from SCM:
+backend — `Jenkinsfile`, frontend — `Jenkinsfile.frontend`.
 
 ### Backend pipeline
 
@@ -167,3 +169,8 @@ Dockerfile записывает его в `/usr/share/nginx/html/version.txt`.
 9. ~~Side quest: HTTPS deployment.~~
 10. ~~Kubernetes. Get the app running manually with kubectl. Handle both incoming and outgoing requests properly.~~
 11. ~~CI/CD. Jenkins pipeline to deliver the updates~~
+### История и внешняя интеграция
+
+Обращения отображаются как `PROJECT_KEY-ID` (ID остаётся глобальным; при переносе меняется префикс). GET `/api/tickets/{id}/activity` возвращает историю статуса, исполнителя, названия, описания и проекта. Старые изменения не восстанавливаются; история начинается после обновления.
+
+В карточке обращения можно загрузить название и состояние публичного GitHub issue. Backend обращается к `https://api.github.com/repos/{owner}/{repo}/issues/{number}`. Токен не требуется; действуют лимиты GitHub для анонимных запросов. Нужен исходящий HTTPS-доступ к api.github.com:443 и DNS. Для кластера с ограниченным egress разрешите этот адрес в используемой сетевой политике или service mesh; манифесты Istio не добавлены, поскольку в репозитории он не настроен. Запрос ограничен таймаутами и фиксированным хостом, перенаправления отключены. Документация: https://docs.github.com/en/rest/issues/issues#get-an-issue

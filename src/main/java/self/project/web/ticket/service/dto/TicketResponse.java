@@ -8,6 +8,7 @@ import java.util.List;
 
 public record TicketResponse(
         Long id,
+        String ticketKey,
         String title,
         String description,
         TicketStatus status,
@@ -27,6 +28,7 @@ public record TicketResponse(
                 .toList();
         return new TicketResponse(
                 ticket.getId(),
+                ticket.getProject().getKey() + "-" + ticket.getId(),
                 ticket.getTitle(),
                 ticket.getDescription(),
                 ticket.getStatus(),

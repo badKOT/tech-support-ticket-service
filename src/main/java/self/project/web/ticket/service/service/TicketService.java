@@ -23,6 +23,7 @@ import self.project.web.ticket.service.security.TicketAccessService;
 public class TicketService {
 
     private final TicketRepository ticketRepo;
+    private final TicketActivityRepository activityRepo;
     private final ProjectRepository projectRepo;
     private final UserRepository userRepo;
     private final CommentRepository commentRepo;
@@ -76,10 +77,12 @@ public class TicketService {
                     "Ticket title must not be blank");
             }
 
+            recordActivity(ticket, currentUser, "TITLE", ticket.getTitle(), title);
             ticket.setTitle(title);
         }
 
         if (request.description() != null) {
+            recordActivity(ticket, currentUser, "DESCRIPTION", ticket.getDescription(), request.description());
             ticket.setDescription(request.description());
         }
 
@@ -92,6 +95,7 @@ public class TicketService {
 
             Project project = getProjectOrThrow(request.projectId());
 
+            recordActivity(ticket, currentUser, "PROJECT", ticket.getProject().getKey(), project.getKey());
             ticket.setProject(project);
         }
 
@@ -112,6 +116,7 @@ public class TicketService {
             throw new AccessDeniedException("You cannot change status of ticket " + ticketId);
         }
 
+        recordActivity(ticket, currentUser, "STATUS", oldStatus.name(), newStatus.name());
         ticket.setStatus(newStatus);
 
         if (newStatus == TicketStatus.CLOSED && oldStatus != TicketStatus.CLOSED) {
@@ -143,6 +148,7 @@ public class TicketService {
                 throw new AccessDeniedException("You cannot remove ticket assignment " + ticketId);
             }
 
+            recordActivity(ticket, currentUser, "ASSIGNEE", assigneeLabel(ticket.getAssignee()), null);
             ticket.setAssignee(null);
 
             return TicketResponse.from(ticket);
@@ -170,6 +176,7 @@ public class TicketService {
                 "Disabled user cannot be assigned to a ticket");
         }
 
+        recordActivity(ticket, currentUser, "ASSIGNEE", assigneeLabel(ticket.getAssignee()), assigneeLabel(assignee));
         ticket.setAssignee(assignee);
 
         return TicketResponse.from(ticket);
@@ -254,6 +261,22 @@ public class TicketService {
                     Math.round(entry.getValue() * 10.0) / 10.0)).toList();
 
         return new ProjectAnalytics(statusCounts, dailyCounts, resolutionTimes);
+    }
+
+    public List<TicketActivityResponse> getActivity(Long ticketId) {
+        checkCanRead(getTicketOrThrow(ticketId), currentUserService.getCurrentUser());
+        return activityRepo.findByTicketIdOrderByCreatedAtAscIdAsc(ticketId).stream()
+                .map(TicketActivityResponse::from).toList();
+    }
+
+    private String assigneeLabel(User user) {
+        return user == null ? null : user.getDisplayName() + " (#" + user.getId() + ")";
+    }
+
+    private void recordActivity(Ticket ticket, User actor, String field, String before, String after) {
+        if (!Objects.equals(before, after)) {
+            activityRepo.save(new TicketActivity(ticket, actor, field, before, after));
+        }
     }
 
     private Ticket getTicketOrThrow(Long ticketId) {

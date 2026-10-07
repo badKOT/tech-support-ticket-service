@@ -81,6 +81,12 @@ public class TicketController {
         ticketService.deleteTicket(ticketId);
     }
 
+    @GetMapping("/tickets/{ticketId}/activity")
+    public List<TicketActivityResponse> getActivity(@PathVariable Long ticketId) {
+        log.info("[GET /tickets/{}/activity] Got request", ticketId);
+        return ticketService.getActivity(ticketId);
+    }
+
     @GetMapping("/tickets/{ticketId}/comments")
     public List<CommentResponse> getComments(@PathVariable Long ticketId) {
         log.info("[GET /tickets/{}/comments] Got request", ticketId);
