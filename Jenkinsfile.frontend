@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timeout(time: 20, unit: 'MINUTES')
+    }
+
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
+    environment {
+        IMAGE_NAME = 'tech-support-frontend'
+        REGISTRY_IMAGE = 'ghcr.io/dorablebetscha/tech-support-frontend'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+
+                script {
+                    env.GIT_SHA = sh(
+                        script: 'git rev-parse --short=12 HEAD',
+                        returnStdout: true
+                    ).trim()
+                }
+
+                sh 'git log -1 --oneline'
+                echo "Image: ${env.IMAGE_NAME}:${env.GIT_SHA}"
+            }
+        }
+
+        stage('Build frontend Docker image') {
+            steps {
+                sh '''
+                    set -eu
+
+                    docker build \
+                        --build-arg APP_VERSION="${GIT_SHA}" \
+                        -t "${IMAGE_NAME}:${GIT_SHA}" \
+                        frontend
+
+                    docker image inspect "${IMAGE_NAME}:${GIT_SHA}" \
+                        --format 'Tags={{json .RepoTags}} ID={{.Id}}'
+                '''
+            }
+        }
+
+        stage('Push frontend Docker image') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'ghcr-push',
+                        usernameVariable: 'GHCR_USER',
+                        passwordVariable: 'GHCR_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        set -eu
+
+                        DOCKER_CONFIG="$(mktemp -d)"
+                        export DOCKER_CONFIG
+                        trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+
+                        printf '%s' "$GHCR_TOKEN" | docker login ghcr.io \
+                            --username "$GHCR_USER" \
+                            --password-stdin
+
+                        docker tag \
+                            "${IMAGE_NAME}:${GIT_SHA}" \
+                            "${REGISTRY_IMAGE}:${GIT_SHA}"
+
+                        docker push "${REGISTRY_IMAGE}:${GIT_SHA}"
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy frontend') {
+            steps {
+                sshagent(credentials: ['k3s-deploy-ssh']) {
+                    sh '''
+                        set -eu
+
+                        sh -n scripts/deploy-frontend-registry.sh
+
+                        ssh \
+                            -o BatchMode=yes \
+                            -o StrictHostKeyChecking=yes \
+                            -o ConnectTimeout=15 \
+                            ticketuser@88.218.67.241 \
+                            "sh -s -- '${REGISTRY_IMAGE}:${GIT_SHA}'" \
+                            < scripts/deploy-frontend-registry.sh
+                    '''
+                }
+            }
+        }
+    }
+}

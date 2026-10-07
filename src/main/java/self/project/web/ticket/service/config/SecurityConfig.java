@@ -27,7 +27,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {"/api/auth/login", "/api/auth/refresh",
         "/api/auth/logout", "/api/init-db", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-        "/actuator/health/**"};
+        "/actuator/health/**", "/api/version"};
 
     @Bean
     public AuthenticationManager authenticationManager(DatabaseAuthenticationProvider authenticationProvider) {
