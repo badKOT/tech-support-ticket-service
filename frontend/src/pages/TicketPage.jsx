@@ -9,6 +9,8 @@ import {
   getAvailableAssignees,
   getTicket,
   getTicketComments,
+  getTicketActivity,
+  getGithubIssue,
   updateTicket,
 } from '../api/api'
 
@@ -31,6 +33,13 @@ export default function TicketPage() {
 
   const {currentUser} = useAuth()
 
+  const [activeTab, setActiveTab] = useState("comments")
+  const [activities, setActivities] = useState([])
+  const [activityError, setActivityError] = useState('')
+  const [githubUrl, setGithubUrl] = useState('')
+  const [githubIssue, setGithubIssue] = useState(null)
+  const [githubError, setGithubError] = useState('')
+  const [githubLoading, setGithubLoading] = useState(false)
   const [ticket, setTicket] = useState(null)
   const [comments, setComments] = useState([])
   const [assignees, setAssignees] = useState([])
@@ -101,6 +110,22 @@ export default function TicketPage() {
       setLoading(false)
     })
   }, [ticketId, canManageAssignment])
+
+  useEffect(() => {
+    let cancelled = false
+    getTicketActivity(ticketId).then((data) => {
+      if (!cancelled) { setActivities(data); setActivityError('') }
+    }).catch(() => { if (!cancelled) setActivityError('Не удалось загрузить историю') })
+    return () => { cancelled = true }
+  }, [ticketId, ticket])
+
+  async function loadGithubIssue(event) {
+    event.preventDefault()
+    setGithubLoading(true); setGithubError(''); setGithubIssue(null)
+    try { setGithubIssue(await getGithubIssue(githubUrl.trim())) }
+    catch (error) { setGithubError(error.status === 400 ? 'Введите ссылку на публичный GitHub issue' : 'Не удалось получить issue: проверьте ссылку и доступность GitHub') }
+    finally { setGithubLoading(false) }
+  }
 
   const canChangeStatus =
       currentUser &&
@@ -364,7 +389,7 @@ export default function TicketPage() {
 
   async function handleDelete() {
     const confirmed = window.confirm(
-        `Удалить тикет #${ticket.id} «${ticket.title}»?`,
+        `Удалить тикет ${ticket.ticketKey} «${ticket.title}»?`,
     )
 
     if (!confirmed) {
@@ -478,7 +503,7 @@ export default function TicketPage() {
                   <div className="ticket-details-header">
                     <div>
                       <div className="ticket-number">
-                        Тикет #{ticket.id}
+                        {ticket.ticketKey}
                       </div>
 
                       {!editing && (
@@ -730,7 +755,30 @@ export default function TicketPage() {
                   </div>
                 </section>
 
-                <section className="comments-section">
+                <section className="content-card">
+                  <h3>GitHub issue</h3>
+                  <form onSubmit={loadGithubIssue} className="ticket-edit-form">
+                    <label className="ticket-edit-field"><span>Ссылка на публичный issue</span>
+                      <input type="url" value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} placeholder="https://github.com/owner/repo/issues/123" required />
+                    </label>
+                    <button className="ticket-secondary-button" disabled={githubLoading}>{githubLoading ? 'Загрузка...' : 'Загрузить сведения'}</button>
+                  </form>
+                  {githubError && <p role="alert">{githubError}</p>}
+                  {githubIssue && <p><a href={githubUrl} target="_blank" rel="noreferrer">{githubIssue.title}</a> — {githubIssue.state}</p>}
+                </section>
+                <div className="ticket-content-actions" role="tablist" aria-label="Обсуждение обращения">
+                  <button type="button" role="tab" aria-selected={activeTab === 'comments'} onClick={() => setActiveTab('comments')} className="ticket-secondary-button">Комментарии ({comments.length})</button>
+                  <button type="button" role="tab" aria-selected={activeTab === 'activity'} onClick={() => setActiveTab('activity')} className="ticket-secondary-button">Активность ({activities.length})</button>
+                </div>
+                {activeTab === 'activity' && <section className="comments-section" role="tabpanel" aria-label="Активность">
+                  {activityError && <p role="alert">{activityError}</p>}
+                  {!activityError && activities.length === 0 && <p>Изменений пока нет</p>}
+                  {activities.map((a) => <article className="comment-card" key={a.id}>
+                    <div className="comment-header"><strong>{a.actorName}</strong><time>{new Date(a.createdAt).toLocaleString()}</time></div>
+                    <p>{{STATUS: 'Статус', ASSIGNEE: 'Исполнитель', TITLE: 'Название', DESCRIPTION: 'Описание', PROJECT: 'Проект'}[a.field]}: {a.oldValue ?? 'Не задано'} → {a.newValue ?? 'Не задано'}</p>
+                  </article>)}
+                </section>}
+                {activeTab === 'comments' && <section className="comments-section" role="tabpanel" aria-label="Комментарии">
                   <div className="section-heading">
                     <h3>Комментарии</h3>
 
@@ -809,7 +857,7 @@ export default function TicketPage() {
                         ))}
                       </div>
                   )}
-                </section>
+                </section>}
               </>
           )}
         </main>

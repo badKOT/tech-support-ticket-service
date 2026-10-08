@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import {
   createTicket,
   getProjectTickets,
+  getProjects,
 } from '../api/api'
 
 import UserBlock from '../components/UserBlock'
@@ -18,6 +19,7 @@ export default function ProjectPage() {
       currentUser?.role === 'TEAM_LEAD' ||
       currentUser?.role === 'ADMIN'
 
+  const [project, setProject] = useState(null)
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -32,8 +34,9 @@ export default function ProjectPage() {
     setLoading(true)
     setError('')
 
-    getProjectTickets(projectId)
-    .then((data) => {
+    Promise.all([getProjectTickets(projectId), getProjects()])
+    .then(([data, projects]) => {
+      setProject(projects.find((p) => String(p.id) === projectId))
       setTickets(data)
     })
     .catch((error) => {
@@ -150,7 +153,7 @@ export default function ProjectPage() {
 
           <div className="page-title project-page-title">
             <div>
-              <h2>Обращения</h2>
+              <h2>{project?.name ?? "Загрузка проекта..."}</h2>
 
               <p>
                 Просмотр и управление обращениями проекта
@@ -316,7 +319,7 @@ export default function ProjectPage() {
 
                             <div className="ticket-meta">
                       <span>
-                        ID: {ticket.id}
+                        {ticket.ticketKey}
                       </span>
 
                               {ticket.creatorName && (

@@ -229,6 +229,65 @@ class TicketSecurityIntegrationTest {
             MediaType.APPLICATION_JSON).content(body)).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void activityShouldRecordChangesAndIgnoreNoOps() throws Exception {
+        var path = "/api/tickets/" + aliceTicket.getId();
+        for (int i = 0; i < 2; i++) {
+            mockMvc.perform(patch(path + "/status").with(jwtUser("bob", UserRole.SUPPORT_AGENT))
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"CLOSED\"}"))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(get(path + "/activity").with(jwtUser("eve", UserRole.REQUESTER)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].actorName").value("Bob Smith"))
+                .andExpect(jsonPath("$[0].oldValue").value("OPEN"))
+                .andExpect(jsonPath("$[0].newValue").value("CLOSED"))
+                .andExpect(jsonPath("$[0].createdAt").exists());
+        mockMvc.perform(get(path).with(jwtUser("alice", UserRole.REQUESTER)))
+                .andExpect(jsonPath("$.ticketKey").value("SUP-" + aliceTicket.getId()));
+    }
+
+    @Test
+    void forbiddenChangesShouldLeaveHistoryEmpty() throws Exception {
+        var path = "/api/tickets/" + aliceTicket.getId();
+        mockMvc.perform(patch(path + "/status").with(jwtUser("eve", UserRole.REQUESTER))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"CLOSED\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get(path + "/activity").with(jwtUser("alice", UserRole.REQUESTER)))
+                .andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get(path + "/activity")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void githubIntegrationShouldRequireAuthAndRejectArbitraryHosts() throws Exception {
+        mockMvc.perform(get("/api/integrations/github/issue").param("url", "http://localhost/private"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/integrations/github/issue").param("url", "http://localhost/private")
+                .with(jwtUser("alice", UserRole.REQUESTER))).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void assignmentContentAndDeletionShouldMaintainHistory() throws Exception {
+        var path = "/api/tickets/" + aliceTicket.getId();
+        mockMvc.perform(patch(path + "/assignee").with(jwtUser("charlie", UserRole.TEAM_LEAD))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"assigneeId\":null}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(path)
+                .with(jwtUser("alice", UserRole.REQUESTER)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Updated title\",\"description\":\"Updated description\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get(path + "/activity").with(jwtUser("alice", UserRole.REQUESTER)))
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].field").value("ASSIGNEE"))
+                .andExpect(jsonPath("$[0].actorName").value("Charlie Brown"))
+                .andExpect(jsonPath("$[1].field").value("TITLE"))
+                .andExpect(jsonPath("$[2].field").value("DESCRIPTION"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(path)
+                .with(jwtUser("diana", UserRole.ADMIN))).andExpect(status().isNoContent());
+        mockMvc.perform(get(path + "/activity").with(jwtUser("alice", UserRole.REQUESTER)))
+                .andExpect(status().isNotFound());
+    }
+
     private RequestPostProcessor jwtUser(String username, UserRole role) {
         return jwt().jwt(jwt -> jwt.subject(username).claim("roles", role.name()))
             .authorities(new SimpleGrantedAuthority("ROLE_" + role.name()));

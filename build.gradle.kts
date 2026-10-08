@@ -6,6 +6,11 @@ plugins {
 
 group = "self.project.web"
 version = "0.0.1-SNAPSHOT"
+springBoot {
+    buildInfo {
+        excludes.set(setOf("time"))
+    }
+}
 
 java {
     toolchain {
