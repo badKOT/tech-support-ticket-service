@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+export KUBECONFIG="$HOME/.kube/config"
+
 image="${1:?Передайте полный адрес образа с тегом}"
 expected_sha="${image##*:}"
 
